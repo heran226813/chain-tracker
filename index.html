@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>产业链影响图谱 · A股投研工具</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0e17;--bg2:#111827;--bg3:#1a2236;--bg4:#0f1520;--border:#1e2d45;
+  --gold:#f0b429;--blue:#38bdf8;--orange:#fb923c;--purple:#a78bfa;--teal:#2dd4bf;
+  --txt:#e8edf5;--txt2:#8899b4;--muted:#4a5a72;
+  --up:#ff4d4f;--dn:#00b578;--neu:#8899b4;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--txt);font-family:'Noto Sans SC',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(56,189,248,0.022) 1px,transparent 1px),linear-gradient(90deg,rgba(56,189,248,0.022) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+.wrap{position:relative;z-index:1;}
+
+/* ── Header ── */
+header{padding:0 28px;height:58px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:rgba(10,14,23,0.95);backdrop-filter:blur(14px);position:sticky;top:0;z-index:200;}
+.logo{display:flex;align-items:center;gap:11px;}
+.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,#f0b429,#fb923c);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#0a0e17;font-family:'Noto Serif SC',serif;}
+.logo-text{font-family:'Noto Serif SC',serif;font-size:16px;font-weight:700;letter-spacing:0.04em;}
+.logo-sub{font-size:9px;color:var(--muted);letter-spacing:0.14em;margin-top:1px;}
+.header-right{display:flex;gap:6px;align-items:center;}
+.hbadge{font-size:10px;padding:2px 8px;border-radius:20px;border:1px solid var(--border);color:var(--muted);font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+.hbadge.ai{border-color:rgba(167,139,250,0.4);color:var(--purple);}
+.hbadge.live{border-color:rgba(0,181,120,0.4);color:var(--dn);}
+
+/* ── Layout ── */
+.main{display:flex;height:calc(100vh - 58px);}
+
+/* ── Sidebar ── */
+.sidebar{width:255px;min-width:255px;border-right:1px solid var(--border);display:flex;flex-direction:column;background:rgba(13,19,31,0.6);}
+.sidebar-scroll{flex:1;overflow-y:auto;padding:14px 0;}
+.sidebar-title{font-size:9px;letter-spacing:0.22em;color:var(--muted);padding:0 16px 8px;text-transform:uppercase;}
+.citem{padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all 0.18s;border-left:3px solid transparent;position:relative;}
+.citem:hover{background:rgba(56,189,248,0.04);}
+.citem.active{background:rgba(240,180,41,0.07);border-left-color:var(--gold);}
+.citem.disabled{opacity:0.33;pointer-events:none;}
+.cicon{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;background:var(--bg3);flex-shrink:0;}
+.cinfo{flex:1;min-width:0;}
+.cname{font-size:13px;font-weight:500;}
+.cen{font-size:9px;color:var(--muted);margin-top:1px;}
+.cchg{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;white-space:nowrap;}
+.cchg.up{color:var(--up);}
+.cchg.dn{color:var(--dn);}
+.ai-dot{position:absolute;top:8px;right:10px;width:6px;height:6px;border-radius:50%;background:var(--teal);}
+.ai-dot.stale{background:var(--gold);}
+.ai-dot.error{background:var(--up);}
+.csep{margin:8px 16px;border:none;border-top:1px solid var(--border);}
+.coming-soon{padding:6px 16px 10px;font-size:9px;color:var(--muted);font-style:italic;}
+
+/* ── Sidebar bottom: schedule panel ── */
+.schedule-panel{border-top:1px solid var(--border);padding:12px 16px;background:rgba(10,14,23,0.5);}
+.schedule-title{font-size:9px;letter-spacing:0.18em;color:var(--muted);text-transform:uppercase;margin-bottom:8px;}
+.schedule-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.schedule-label{font-size:11px;color:var(--txt2);}
+.schedule-value{font-size:10px;color:var(--txt);font-family:'JetBrains Mono',monospace;}
+.schedule-next{font-size:10px;color:var(--gold);font-family:'JetBrains Mono',monospace;}
+.progress-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:4px;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--teal));border-radius:2px;transition:width 1s linear;}
+.btn-manual{width:100%;margin-top:8px;padding:6px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid rgba(167,139,250,0.3);background:rgba(167,139,250,0.07);color:var(--purple);font-family:'Noto Sans SC',sans-serif;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:5px;}
+.btn-manual:hover{background:rgba(167,139,250,0.14);}
+.btn-manual:disabled{opacity:0.45;cursor:not-allowed;}
+.btn-manual.running{animation:pulse 1.2s ease infinite;}
+
+/* ── Content ── */
+.content{flex:1;overflow-y:auto;padding:20px 26px;}
+
+/* ── Daily update status bar ── */
+.update-status{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 16px;border-radius:10px;margin-bottom:16px;
+  border:1px solid var(--border);background:var(--bg2);
+  font-size:11px;
+}
+.update-status.fresh{border-color:rgba(45,212,191,0.25);background:rgba(45,212,191,0.04);}
+.update-status.stale{border-color:rgba(240,180,41,0.25);background:rgba(240,180,41,0.04);}
+.update-status.running{border-color:rgba(167,139,250,0.3);background:rgba(167,139,250,0.05);}
+.update-status.error{border-color:rgba(255,77,79,0.25);background:rgba(255,77,79,0.04);}
+.status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.status-dot.fresh{background:var(--teal);}
+.status-dot.stale{background:var(--gold);animation:blink2 2s ease infinite;}
+.status-dot.running{background:var(--purple);animation:pulse 0.9s ease infinite;}
+.status-dot.error{background:var(--up);}
+@keyframes blink2{0%,100%{opacity:1;}50%{opacity:0.4;}}
+.status-text{flex:1;color:var(--txt2);}
+.status-text strong{color:var(--txt);}
+.status-sources{display:flex;gap:5px;flex-wrap:wrap;}
+.src-chip{font-size:9px;padding:1px 6px;border-radius:10px;border:1px solid var(--border);color:var(--muted);font-family:'JetBrains Mono',monospace;}
+.src-chip.fetched{border-color:rgba(45,212,191,0.3);color:var(--teal);}
+.src-chip.pending{border-color:rgba(167,139,250,0.3);color:var(--purple);}
+.src-chip.fail{border-color:rgba(255,77,79,0.3);color:var(--up);}
+
+/* ── AI stream log ── */
+.ai-log{
+  background:var(--bg4);border:1px solid var(--border);border-radius:8px;
+  padding:10px 14px;margin-bottom:16px;
+  font-size:10px;color:var(--txt2);line-height:1.8;
+  font-family:'JetBrains Mono',monospace;
+  max-height:140px;overflow-y:auto;
+  display:none;
+}
+.ai-log.visible{display:block;}
+.log-line{margin-bottom:2px;}
+.log-line.info{color:var(--txt2);}
+.log-line.ok{color:var(--teal);}
+.log-line.warn{color:var(--gold);}
+.log-line.err{color:var(--up);}
+.log-line.ai{color:var(--purple);}
+.log-ts{color:var(--muted);margin-right:6px;}
+
+/* ── Change diff section ── */
+.diff-section{background:rgba(45,212,191,0.04);border:1px solid rgba(45,212,191,0.18);border-radius:9px;padding:12px 14px;margin-bottom:16px;display:none;}
+.diff-section.visible{display:block;}
+.diff-title{font-size:10px;letter-spacing:0.15em;color:var(--teal);text-transform:uppercase;margin-bottom:8px;font-weight:600;}
+.diff-items{display:flex;flex-direction:column;gap:4px;}
+.diff-item{font-size:11px;color:var(--txt2);display:flex;align-items:flex-start;gap:7px;}
+.diff-bullet{flex-shrink:0;margin-top:1px;}
+.diff-bullet.new{color:var(--teal);}
+.diff-bullet.changed{color:var(--gold);}
+.diff-bullet.added{color:var(--blue);}
+
+/* ── History timeline ── */
+.history-row{display:flex;align-items:center;gap:0;margin-bottom:14px;overflow-x:auto;padding-bottom:3px;}
+.hist-node{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:0 2px;}
+.hist-dot{width:9px;height:9px;border-radius:50%;border:2px solid var(--border);background:var(--bg3);transition:all 0.15s;}
+.hist-node.active .hist-dot{border-color:var(--gold);background:var(--gold);}
+.hist-node:hover .hist-dot{border-color:var(--blue);}
+.hist-label{font-size:8px;color:var(--muted);font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+.hist-line{flex:1;min-width:14px;height:1px;background:var(--border);}
+
+/* ── Product header ── */
+.product-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:16px;}
+.product-title-area{flex:1;}
+.product-title{font-family:'Noto Serif SC',serif;font-size:22px;font-weight:700;margin-bottom:5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.ptag{font-size:9px;padding:2px 8px;border-radius:20px;font-weight:600;letter-spacing:0.07em;}
+.ptag.energy{background:rgba(56,189,248,0.09);color:var(--blue);border:1px solid rgba(56,189,248,0.18);}
+.ptag.chemical{background:rgba(240,180,41,0.08);color:var(--gold);border:1px solid rgba(240,180,41,0.16);}
+.product-desc{font-size:11px;color:var(--txt2);line-height:1.75;max-width:560px;}
+.price-panel{background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:13px 20px;min-width:210px;text-align:right;}
+.price-label{font-size:9px;color:var(--muted);letter-spacing:0.07em;margin-bottom:3px;}
+.price-value{font-family:'JetBrains Mono',monospace;font-size:27px;font-weight:500;line-height:1;}
+.price-unit{font-size:10px;color:var(--muted);margin-left:3px;}
+.price-chg-row{display:flex;align-items:center;justify-content:flex-end;gap:7px;margin-top:4px;}
+.price-chg{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;}
+.sparkrow{display:flex;gap:2px;align-items:flex-end;height:18px;margin-top:6px;}
+.sbar{flex:1;border-radius:2px 2px 0 0;min-height:2px;}
+
+.sec-label{font-size:9px;letter-spacing:0.25em;color:var(--gold);text-transform:uppercase;margin-bottom:11px;display:flex;align-items:center;gap:8px;}
+.sec-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent);}
+
+/* ── Chain ── */
+.chain-flow{display:flex;align-items:stretch;margin-bottom:20px;overflow-x:auto;padding-bottom:3px;}
+.chain-stage{flex:1;min-width:155px;}
+.stage-hd{padding:7px 11px;border-radius:6px 6px 0 0;font-size:9px;letter-spacing:0.12em;font-weight:600;text-transform:uppercase;text-align:center;}
+.stage-hd.up-s{background:rgba(239,68,68,0.11);color:#ef4444;border:1px solid rgba(239,68,68,0.22);border-bottom:none;}
+.stage-hd.mid-s{background:rgba(240,180,41,0.08);color:var(--gold);border:1px solid rgba(240,180,41,0.17);border-bottom:none;}
+.stage-hd.dn-s{background:rgba(34,197,94,0.07);color:#22c55e;border:1px solid rgba(34,197,94,0.15);border-bottom:none;}
+.stage-bd{border:1px solid var(--border);border-radius:0 0 6px 6px;padding:8px;background:var(--bg2);min-height:140px;}
+.stage-bd.up-s{border-color:rgba(239,68,68,0.22);}
+.stage-bd.mid-s{border-color:rgba(240,180,41,0.17);}
+.stage-bd.dn-s{border-color:rgba(34,197,94,0.15);}
+.chain-arrow{display:flex;align-items:center;padding:0 4px;margin-top:35px;color:var(--muted);font-size:14px;flex-shrink:0;}
+.cp{background:var(--bg3);border-radius:5px;padding:5px 8px;margin-bottom:5px;font-size:10px;border:1px solid var(--border);transition:border-color 0.15s;}
+.cp:hover{border-color:rgba(240,180,41,0.28);}
+.cp.hl{border-color:var(--gold);background:rgba(240,180,41,0.04);}
+.cp-name{font-weight:500;margin-bottom:1px;}
+.cp-note{font-size:9px;color:var(--muted);line-height:1.4;}
+
+/* ── Scenario ── */
+.scenario-row{display:flex;gap:6px;margin-bottom:12px;align-items:center;}
+.sc-lbl{font-size:10px;color:var(--muted);}
+.sc-btn{padding:4px 13px;border-radius:5px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Noto Sans SC',sans-serif;transition:all 0.15s;}
+.sc-btn.rise{border-color:rgba(239,68,68,0.34);}
+.sc-btn.fall{border-color:rgba(34,197,94,0.28);}
+.sc-btn.active.rise{background:rgba(239,68,68,0.11);color:var(--up);border-color:var(--up);}
+.sc-btn.active.fall{background:rgba(34,197,94,0.08);color:var(--dn);border-color:var(--dn);}
+
+/* ── Summary ── */
+.sumbar{background:linear-gradient(135deg,rgba(240,180,41,0.05),rgba(251,146,60,0.03));border:1px solid rgba(240,180,41,0.14);border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;}
+.si{display:flex;align-items:center;gap:6px;}
+.sdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.sdot.r{background:var(--up);}
+.sdot.g{background:var(--dn);}
+.sdot.o{background:var(--gold);}
+.sdot.p{background:var(--purple);}
+.stxt{font-size:10px;color:var(--txt2);}
+.stxt strong{color:var(--txt);}
+.sdiv{width:1px;height:16px;background:var(--border);}
+.mag-row{display:flex;gap:11px;align-items:center;font-size:9px;color:var(--muted);margin-bottom:11px;}
+.mi{display:flex;align-items:center;gap:4px;}
+.md{width:7px;height:7px;border-radius:50%;}
+.md.h{background:var(--up);}
+.md.m{background:var(--gold);}
+.md.l{background:var(--dn);}
+
+/* ── Impact grid ── */
+.impact-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;margin-bottom:22px;}
+.icard{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:all 0.2s;position:relative;}
+.icard:hover{border-color:rgba(240,180,41,0.22);transform:translateY(-1px);box-shadow:0 6px 22px rgba(0,0,0,0.24);}
+.icard.is-new{border-color:rgba(45,212,191,0.4);}
+.icard.is-new::before{content:'NEW';position:absolute;top:-1px;right:10px;font-size:7px;background:var(--teal);color:#0a0e17;padding:2px 5px;border-radius:0 0 4px 4px;font-weight:800;letter-spacing:0.05em;}
+.icard.is-changed{border-color:rgba(240,180,41,0.4);}
+.icard.is-changed::before{content:'UPDATED';position:absolute;top:-1px;right:10px;font-size:7px;background:var(--gold);color:#0a0e17;padding:2px 5px;border-radius:0 0 4px 4px;font-weight:800;letter-spacing:0.05em;}
+.icard-hd{padding:10px 13px 8px;display:flex;align-items:center;gap:7px;border-bottom:1px solid var(--border);}
+.ibadge{font-size:9px;padding:1px 6px;border-radius:20px;font-weight:600;}
+.ibadge.negative{background:rgba(239,68,68,0.11);color:#ef4444;}
+.ibadge.positive{background:rgba(34,197,94,0.09);color:#22c55e;}
+.ibadge.mixed{background:rgba(240,180,41,0.09);color:var(--gold);}
+.iindustry{font-size:12px;font-weight:600;flex:1;}
+.confbadge{font-size:8px;padding:1px 5px;border-radius:10px;font-weight:600;}
+.confbadge.high{background:rgba(45,212,191,0.1);color:var(--teal);border:1px solid rgba(45,212,191,0.2);}
+.confbadge.med{background:rgba(240,180,41,0.09);color:var(--gold);border:1px solid rgba(240,180,41,0.18);}
+.confbadge.low{background:rgba(167,139,250,0.09);color:var(--purple);border:1px solid rgba(167,139,250,0.18);}
+.magbadge{font-size:7px;padding:1px 4px;border-radius:3px;font-weight:700;margin-left:2px;}
+.magbadge.high{background:rgba(239,68,68,0.14);color:var(--up);}
+.magbadge.med{background:rgba(240,180,41,0.1);color:var(--gold);}
+.magbadge.low{background:rgba(34,197,94,0.08);color:var(--dn);}
+.idir{font-size:18px;}
+.icard-body{padding:9px 12px;}
+.ai-insight-box{background:rgba(167,139,250,0.05);border:1px solid rgba(167,139,250,0.14);border-radius:6px;padding:7px 10px;margin-bottom:8px;font-size:10px;color:var(--txt2);line-height:1.65;}
+.ai-insight-lbl{font-size:8px;letter-spacing:0.14em;color:var(--purple);text-transform:uppercase;margin-bottom:3px;font-weight:600;}
+.ilogic{font-size:10px;color:var(--txt2);line-height:1.75;margin-bottom:8px;padding:6px 8px;background:rgba(255,255,255,0.016);border-radius:5px;border-left:3px solid var(--border);}
+.ilogic.negative{border-left-color:rgba(239,68,68,0.38);}
+.ilogic.positive{border-left-color:rgba(34,197,94,0.32);}
+.ilogic.mixed{border-left-color:rgba(240,180,41,0.32);}
+.slist{display:flex;flex-direction:column;gap:4px;}
+.srow{display:flex;align-items:center;gap:6px;padding:5px 7px;border-radius:5px;background:var(--bg3);transition:all 0.14s;cursor:pointer;}
+.srow:hover{background:rgba(56,189,248,0.06);}
+.srow.is-new{border:1px solid rgba(45,212,191,0.3);}
+.scode{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--blue);width:54px;flex-shrink:0;}
+.sname{font-size:10px;font-weight:500;flex:1;}
+.snote{font-size:9px;color:var(--muted);flex:1.5;text-align:right;}
+.simpact{width:72px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;}
+.simpact.up{color:var(--up);}
+.simpact.dn{color:var(--dn);}
+.simpact.neutral{color:var(--neu);}
+.delta-tag{font-size:8px;padding:0px 4px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-weight:700;margin-left:3px;}
+.delta-tag.up{background:rgba(255,77,79,0.13);color:var(--up);}
+.delta-tag.dn{background:rgba(0,181,120,0.1);color:var(--dn);}
+
+.footer-note{font-size:9px;color:var(--muted);text-align:center;padding:14px 0 8px;border-top:1px solid var(--border);margin-top:20px;line-height:1.9;}
+
+/* ── Animations ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.fu{animation:fadeUp 0.3s ease both;}
+.fu:nth-child(1){animation-delay:.03s}.fu:nth-child(2){animation-delay:.06s}
+.fu:nth-child(3){animation-delay:.09s}.fu:nth-child(4){animation-delay:.12s}
+.fu:nth-child(5){animation-delay:.15s}.fu:nth-child(6){animation-delay:.18s}
+.fu:nth-child(7){animation-delay:.21s}.fu:nth-child(8){animation-delay:.24s}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="logo">
+    <div class="logo-icon">链</div>
+    <div>
+      <div class="logo-text">产业链图谱 · A股影响追踪</div>
+      <div class="logo-sub">SUPPLY CHAIN IMPACT TRACKER — AI POWERED</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="hbadge ai">✦ Claude AI 每日更新</span>
+    <span class="hbadge">v0.4</span>
+    <span class="hbadge live" id="hd-time">● --:--</span>
+  </div>
+</header>
+
+<div class="main">
+<!-- ── Sidebar ── -->
+<aside class="sidebar">
+  <div class="sidebar-scroll">
+    <div class="sidebar-title">已上线品种</div>
+    <div class="citem active" id="item-caustic" onclick="selectCommodity('caustic-soda',this)">
+      <div class="cicon">🧪</div>
+      <div class="cinfo"><div class="cname">烧碱</div><div class="cen">Caustic Soda / NaOH</div></div>
+      <div class="cchg up">+8.3%</div>
+      <div class="ai-dot" id="dot-caustic-soda" title="数据状态"></div>
+    </div>
+    <div class="citem" id="item-lithium" onclick="selectCommodity('lithium',this)">
+      <div class="cicon">🔋</div>
+      <div class="cinfo"><div class="cname">碳酸锂</div><div class="cen">Lithium Carbonate</div></div>
+      <div class="cchg dn">-11.4%</div>
+      <div class="ai-dot" id="dot-lithium" title="数据状态"></div>
+    </div>
+    <hr class="csep">
+    <div class="sidebar-title">即将上线</div>
+    <div class="citem disabled"><div class="cicon">⚡</div><div class="cinfo"><div class="cname">电解铝</div><div class="cen">Electrolytic Aluminum</div></div><div class="cchg up">+4.1%</div></div>
+    <div class="citem disabled"><div class="cicon">🛢️</div><div class="cinfo"><div class="cname">原油</div><div class="cen">Crude Oil / WTI</div></div><div class="cchg dn">-2.7%</div></div>
+    <div class="citem disabled"><div class="cicon">🌽</div><div class="cinfo"><div class="cname">玉米</div><div class="cen">Corn / CBOT</div></div><div class="cchg dn">-1.2%</div></div>
+    <div class="citem disabled"><div class="cicon">🏗️</div><div class="cinfo"><div class="cname">螺纹钢</div><div class="cen">HRB Steel Rebar</div></div><div class="cchg up">+1.9%</div></div>
+    <div class="citem disabled"><div class="cicon">🔵</div><div class="cinfo"><div class="cname">氧化铝</div><div class="cen">Alumina / Al₂O₃</div></div><div class="cchg up">+3.2%</div></div>
+    <div class="coming-soon">更多品种陆续上线中…</div>
+  </div>
+
+  <!-- ── Schedule panel ── -->
+  <div class="schedule-panel">
+    <div class="schedule-title">自动更新计划</div>
+    <div class="schedule-row">
+      <span class="schedule-label">更新频率</span>
+      <span class="schedule-value">每天 06:00</span>
+    </div>
+    <div class="schedule-row">
+      <span class="schedule-label">数据来源</span>
+      <span class="schedule-value" style="color:var(--purple)">Claude AI + 联网</span>
+    </div>
+    <div class="schedule-row">
+      <span class="schedule-label">下次更新</span>
+      <span class="schedule-next" id="next-update-time">计算中…</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="day-progress" style="width:0%"></div></div>
+    <button class="btn-manual" id="btn-manual-update" onclick="triggerManualUpdate()">
+      <span id="manual-btn-text">⚡ 立即更新当前品种</span>
+    </button>
+  </div>
+</aside>
+
+<!-- ── Main content ── -->
+<main class="content" id="main-content"></main>
+</div>
+</div>
+
+<script>
+/* ══════════════════════════════════════
+   BASE DATA
+══════════════════════════════════════ */
+const BASE = {
+  'caustic-soda':{
+    title:'🧪 烧碱（NaOH）产业链影响图谱',tag:{text:'基础化工',cls:'chemical'},
+    desc:'烧碱是重要基础化工原料，广泛用于造纸、氧化铝、印染、PVC等行业。价格变动对下游多个行业盈利能力影响显著。',
+    priceLabel:'华东离子膜烧碱（32%）参考价',priceUnit:'元/吨',
+    spark:[30,40,35,55,48,62,70,85,78,72,100],
+    chain:{
+      upstream:[{name:'⚡ 电力',note:'高耗电工艺，电价是核心成本',h:true},{name:'🧂 原盐（NaCl）',note:'氯碱工业核心原料',h:true},{name:'🔧 离子交换膜',note:'电解槽关键耗材，进口依赖',h:false}],
+      midstream:[{name:'🧪 烧碱（NaOH）',note:'本品，当前分析核心',h:true},{name:'☢️ 氯气（Cl₂）',note:'烧碱联产品，价格联动',h:true},{name:'💧 液氯',note:'氯气深加工，用于水处理',h:false}],
+      downstream:[{name:'📄 造纸/纸浆',note:'成本占比约10-15%',h:false},{name:'🪨 氧化铝',note:'拜耳法消耗大量烧碱',h:false},{name:'🧵 粘胶纤维/印染',note:'印染前处理用碱量大',h:false},{name:'🏭 PVC树脂',note:'乙烯法PVC用烧碱中和HCl',h:false},{name:'💊 医药/染料',note:'精细化工广泛应用',h:false}],
+    },
+    rise:{priceVal:'820',priceChg:'▲ +8.3%',totalStocks:18,highImpact:8,
+      sparkCols:['rgba(240,180,41,0.28)','rgba(240,180,41,0.28)','rgba(240,180,41,0.28)','rgba(240,180,41,0.28)','rgba(240,180,41,0.28)','rgba(240,180,41,0.28)','rgba(240,180,41,0.28)','#ff4d4f','rgba(240,180,41,0.28)','rgba(240,180,41,0.28)','#f0b429'],
+      cards:[
+        {industry:'氧化铝/电解铝',badge:'negative',badgeText:'成本压力',icon:'🪨',dir:'🔴',mag:'high',conf:'high',logic:'拜耳法生产氧化铝大量消耗烧碱（约120-140kg/吨），烧碱每涨100元/吨，吨铝成本上升约12-15元，铝企毛利受到明显压制。',lc:'negative',stocks:[{code:'601600',name:'中国铝业',note:'氧化铝产量大，成本传导直接',impact:'↓ 负面',cls:'up'},{code:'600961',name:'中国宏桥',note:'氧化铝自给率高，成本敏感',impact:'↓ 负面',cls:'up'},{code:'000807',name:'云铝股份',note:'氧化铝外购比例较高',impact:'↓ 中性偏负',cls:'up'},{code:'002532',name:'天山铝业',note:'电解铝+氧化铝一体化',impact:'↓ 负面',cls:'up'}]},
+        {industry:'造纸/纸浆',badge:'negative',badgeText:'成本压力',icon:'📄',dir:'🔴',mag:'high',conf:'high',logic:'烧碱是制浆蒸煮的核心药剂，对以自制浆为主的纸企成本占比约8-12%，价格上涨直接压缩毛利率，转嫁能力有限。',lc:'negative',stocks:[{code:'000488',name:'晨鸣纸业',note:'自制浆规模大，烧碱用量高',impact:'↓ 负面',cls:'up'},{code:'600308',name:'华泰股份',note:'新闻纸为主，用碱量较大',impact:'↓ 负面',cls:'up'},{code:'002078',name:'太阳纸业',note:'林浆纸一体化，成本较可控',impact:'↓ 中性偏负',cls:'up'}]},
+        {industry:'粘胶纤维/纺织印染',badge:'negative',badgeText:'成本压力',icon:'🧵',dir:'🔴',mag:'high',conf:'med',logic:'粘胶短纤生产中烧碱用量约0.5-0.7吨/吨产品，成本占比可达15%以上，涨价对盈利压制显著。',lc:'negative',stocks:[{code:'600370',name:'三房巷',note:'粘胶纤维主营，烧碱核心成本',impact:'↓ 负面',cls:'up'},{code:'000687',name:'新赛股份',note:'棉纺一体化，用碱量可观',impact:'↓ 负面',cls:'up'}]},
+        {industry:'PVC树脂/氯碱化工',badge:'mixed',badgeText:'分化影响',icon:'🏭',dir:'🟡',mag:'med',conf:'high',logic:'氯碱企业是烧碱生产方，价格上涨直接利好；乙烯法PVC企业外购烧碱，成本增加；电石法PVC一体化若自产烧碱则受益，行业分化明显。',lc:'mixed',stocks:[{code:'000422',name:'湖北宜化',note:'氯碱自产，烧碱涨价受益',impact:'↑ 正面',cls:'dn'},{code:'002092',name:'中泰化学',note:'电石法PVC+烧碱一体化受益',impact:'↑ 正面',cls:'dn'},{code:'600346',name:'恒力石化',note:'乙烯法PVC，外购烧碱，成本承压',impact:'↓ 负面',cls:'up'},{code:'601216',name:'君正集团',note:'烧碱+PVC一体化受益',impact:'↑ 正面',cls:'dn'}]},
+        {industry:'氯碱生产商（受益）',badge:'positive',badgeText:'直接受益',icon:'⚗️',dir:'🟢',mag:'high',conf:'high',logic:'氯碱企业直接生产烧碱，价格上涨即为营收提升。联产品氯气价格通常同步景气，形成双轮驱动。',lc:'positive',stocks:[{code:'002092',name:'中泰化学',note:'烧碱产能居前，弹性大',impact:'↑ 强正面',cls:'dn'},{code:'000422',name:'湖北宜化',note:'氯碱规模大，受益显著',impact:'↑ 正面',cls:'dn'},{code:'601216',name:'君正集团',note:'烧碱+电石双主业受益',impact:'↑ 正面',cls:'dn'}]},
+        {industry:'医药/精细化工',badge:'negative',badgeText:'成本微压',icon:'💊',dir:'🟡',mag:'low',conf:'med',logic:'烧碱用于pH调节、有机合成等，成本占比通常低于5%，影响有限，高附加值企业可通过提价转嫁。',lc:'mixed',stocks:[{code:'300181',name:'佐力药业',note:'用碱量极小，可忽略',impact:'→ 微弱',cls:'neutral'},{code:'002649',name:'博彦科技',note:'无直接关联',impact:'→ 无影响',cls:'neutral'}]},
+      ]},
+    fall:{priceVal:'680',priceChg:'▼ -7.1%',totalStocks:18,highImpact:8,
+      sparkCols:['rgba(34,197,94,0.24)','rgba(34,197,94,0.24)','rgba(34,197,94,0.24)','rgba(34,197,94,0.24)','rgba(34,197,94,0.24)','rgba(34,197,94,0.24)','rgba(34,197,94,0.24)','rgba(34,197,94,0.24)','rgba(34,197,94,0.24)','rgba(34,197,94,0.24)','#00b578'],
+      cards:[
+        {industry:'氧化铝/电解铝',badge:'positive',badgeText:'成本下降',icon:'🪨',dir:'🟢',mag:'high',conf:'high',logic:'拜耳法氧化铝生产成本直接下降，每降100元/吨节省约12-15元/吨铝成本，铝企毛利率改善，有望推动估值修复。',lc:'positive',stocks:[{code:'601600',name:'中国铝业',note:'成本大幅改善，利润弹性高',impact:'↑ 正面',cls:'dn'},{code:'600961',name:'中国宏桥',note:'自给率高，受益显著',impact:'↑ 正面',cls:'dn'},{code:'000807',name:'云铝股份',note:'外购降价，成本改善',impact:'↑ 中性偏正',cls:'dn'}]},
+        {industry:'造纸/纸浆',badge:'positive',badgeText:'成本下降',icon:'📄',dir:'🟢',mag:'high',conf:'high',logic:'制浆药剂成本降低，纸企毛利率有望提升1-2个百分点，叠加纸价平稳情景下业绩改善明显。',lc:'positive',stocks:[{code:'000488',name:'晨鸣纸业',note:'用碱量大，跌价直接受益',impact:'↑ 正面',cls:'dn'},{code:'600308',name:'华泰股份',note:'新闻纸成本压力缓解',impact:'↑ 正面',cls:'dn'},{code:'002078',name:'太阳纸业',note:'一体化优势强化',impact:'↑ 中性偏正',cls:'dn'}]},
+        {industry:'粘胶纤维/纺织印染',badge:'positive',badgeText:'成本下降',icon:'🧵',dir:'🟢',mag:'high',conf:'med',logic:'粘胶纤维核心成本烧碱价格下行，行业利润修复明显，产能利用率有望提升，ROE改善逻辑顺畅。',lc:'positive',stocks:[{code:'600370',name:'三房巷',note:'粘胶纤维成本下降，盈利改善',impact:'↑ 正面',cls:'dn'},{code:'000687',name:'新赛股份',note:'成本压力大幅缓解',impact:'↑ 正面',cls:'dn'}]},
+        {industry:'PVC树脂/氯碱化工',badge:'mixed',badgeText:'分化影响',icon:'🏭',dir:'🟡',mag:'med',conf:'high',logic:'氯碱企业营收承压，景气下行；乙烯法PVC外购烧碱企业成本下降受益；行业整体分化，下游受益但生产商利润收窄。',lc:'mixed',stocks:[{code:'000422',name:'湖北宜化',note:'烧碱自产，跌价直接负面',impact:'↓ 负面',cls:'up'},{code:'002092',name:'中泰化学',note:'一体化企业，营收承压',impact:'↓ 负面',cls:'up'},{code:'600346',name:'恒力石化',note:'乙烯法PVC外购，成本下降受益',impact:'↑ 正面',cls:'dn'}]},
+        {industry:'氯碱生产商（承压）',badge:'negative',badgeText:'价格承压',icon:'⚗️',dir:'🔴',mag:'high',conf:'high',logic:'烧碱价格下跌直接压缩氯碱企业营收和利润。若联产品氯气价格同步走弱则双重承压。',lc:'negative',stocks:[{code:'002092',name:'中泰化学',note:'烧碱产能大，价格下行弹性反向',impact:'↓ 负面',cls:'up'},{code:'000422',name:'湖北宜化',note:'氯碱规模大，负面影响显著',impact:'↓ 负面',cls:'up'},{code:'601216',name:'君正集团',note:'烧碱+电石双主业承压',impact:'↓ 负面',cls:'up'}]},
+        {industry:'医药/精细化工',badge:'positive',badgeText:'微幅受益',icon:'💊',dir:'🟡',mag:'low',conf:'med',logic:'烧碱跌价对精细化工成本改善微弱但实际存在，有助于维持成本结构稳定，高附加值企业受益不明显。',lc:'positive',stocks:[{code:'300181',name:'佐力药业',note:'用碱量极小，影响可忽略',impact:'→ 微弱',cls:'neutral'},{code:'002649',name:'博彦科技',note:'无直接关联',impact:'→ 无影响',cls:'neutral'}]},
+      ]}
+  },
+  'lithium':{
+    title:'🔋 碳酸锂（Li₂CO₃）产业链影响图谱',tag:{text:'新能源材料',cls:'energy'},
+    desc:'碳酸锂是锂电池正极材料、电解液的核心原材料，被称为"白色石油"。价格剧烈波动对新能源汽车、储能、消费电子整条产业链影响深远，是A股最受关注的大宗商品之一。',
+    priceLabel:'电池级碳酸锂（99.5%）市场价',priceUnit:'万元/吨',
+    spark:[48,62,80,100,92,75,58,44,35,28,22],
+    chain:{
+      upstream:[{name:'🪨 锂辉石/锂云母',note:'矿石锂，主要来自澳大利亚、非洲',h:true},{name:'🧂 盐湖卤水',note:'卤水提锂，来自南美盐湖、青藏高原',h:true},{name:'♻️ 废旧电池回收',note:'再生锂来源，成本优势逐步显现',h:false},{name:'⚗️ 硫酸/盐酸',note:'浸出和提纯的辅助原材料',h:false}],
+      midstream:[{name:'🔋 碳酸锂（Li₂CO₃）',note:'本品，磷酸铁锂路线核心材料',h:true},{name:'💎 氢氧化锂（LiOH）',note:'三元高镍路线核心材料，价格联动',h:true},{name:'🔷 六氟磷酸锂（LiPF₆）',note:'电解液关键原材料，价格敏感性高',h:false},{name:'🟫 磷酸铁锂（LFP）',note:'主流正极材料，直接使用碳酸锂',h:false}],
+      downstream:[{name:'🚗 新能源汽车动力电池',note:'最大消费方向，占比约70%',h:false},{name:'🏭 储能系统（ESS）',note:'增速最快，占比快速提升至20%+',h:false},{name:'📱 消费电子电池',note:'手机、笔记本等，占比约10%',h:false},{name:'🔌 充电桩/光伏储能',note:'配套储能，间接影响',h:false}],
+    },
+    rise:{priceVal:'9.8',priceChg:'▲ +12.6%',totalStocks:22,highImpact:10,
+      sparkCols:['rgba(56,189,248,0.2)','rgba(56,189,248,0.24)','rgba(56,189,248,0.28)','#38bdf8','rgba(56,189,248,0.26)','rgba(56,189,248,0.2)','rgba(56,189,248,0.16)','rgba(56,189,248,0.14)','rgba(56,189,248,0.13)','rgba(56,189,248,0.13)','#ff4d4f'],
+      cards:[
+        {industry:'锂矿资源商（直接受益）',badge:'positive',badgeText:'直接受益',icon:'⛏️',dir:'🟢',mag:'high',conf:'high',logic:'碳酸锂价格上涨直接提升锂矿资源企业营收和利润。拥有低成本锂矿资源的企业量价齐升，利润弹性极大，是锂价上涨最直接的受益方向。',lc:'positive',stocks:[{code:'002460',name:'赣锋锂业',note:'全球锂资源龙头，一体化',impact:'↑ 强正面',cls:'dn'},{code:'002466',name:'天齐锂业',note:'格林布什矿资源优势突出',impact:'↑ 强正面',cls:'dn'},{code:'601899',name:'紫金矿业',note:'锂矿资产快速扩张，弹性增大',impact:'↑ 正面',cls:'dn'},{code:'000792',name:'盐湖股份',note:'青海卤水提锂，成本极低',impact:'↑ 强正面',cls:'dn'},{code:'002497',name:'雅化集团',note:'锂盐产能扩张中，业绩弹性释放',impact:'↑ 正面',cls:'dn'}]},
+        {industry:'正极材料商',badge:'mixed',badgeText:'成本承压',icon:'🔷',dir:'🟡',mag:'high',conf:'high',logic:'正极材料商原料成本大幅上升，若无法及时提价则毛利承压。头部企业具备更强的成本转嫁能力，但行业整体盈利质量下降。',lc:'mixed',stocks:[{code:'300750',name:'宁德时代',note:'正极部分自制，可向下游转嫁',impact:'→ 中性',cls:'neutral'},{code:'002074',name:'国轩高科',note:'LFP电池为主，碳酸锂成本敏感',impact:'↓ 中性偏负',cls:'up'},{code:'688567',name:'孚能科技',note:'三元软包，氢氧化锂成本上升',impact:'↓ 负面',cls:'up'},{code:'300014',name:'亿纬锂能',note:'多技术路线，部分对冲',impact:'↓ 中性偏负',cls:'up'}]},
+        {industry:'新能源汽车整车',badge:'negative',badgeText:'成本承压',icon:'🚗',dir:'🔴',mag:'high',conf:'high',logic:'动力电池成本在纯电整车BOM中占比约35-45%，碳酸锂价格每涨1万元/吨，单GWh电池成本增加约1000-1500万元，整车利润空间受到明显压缩。',lc:'negative',stocks:[{code:'002594',name:'比亚迪',note:'电池自制比例高，部分对冲但仍承压',impact:'↓ 中性偏负',cls:'up'},{code:'601127',name:'赛力斯',note:'电池外购为主，成本传导敏感',impact:'↓ 负面',cls:'up'},{code:'600104',name:'上汽集团',note:'新能源转型中，成本控制待提升',impact:'↓ 负面',cls:'up'},{code:'000625',name:'长安汽车',note:'阿维塔等新能源业务成本上升',impact:'↓ 负面',cls:'up'}]},
+        {industry:'储能系统/电力设备',badge:'negative',badgeText:'成本承压',icon:'🏭',dir:'🔴',mag:'med',conf:'med',logic:'储能系统中电芯成本占比超60%，锂价上涨直接抬升系统成本，压缩储能项目IRR，可能导致部分储能招标推迟。',lc:'negative',stocks:[{code:'300274',name:'阳光电源',note:'储能系统集成商，电芯外采',impact:'↓ 负面',cls:'up'},{code:'601877',name:'正泰电器',note:'储能业务成本上升',impact:'↓ 中性偏负',cls:'up'},{code:'688390',name:'固德威',note:'储能逆变器+储能系统',impact:'↓ 中性偏负',cls:'up'}]},
+        {industry:'电解液/六氟磷酸锂',badge:'mixed',badgeText:'成本压力',icon:'⚗️',dir:'🟡',mag:'med',conf:'med',logic:'六氟磷酸锂是碳酸锂下游，锂价上涨直接推升电解液原料成本。头部电解液企业具备一定定价权，但毛利率仍受压缩。',lc:'mixed',stocks:[{code:'300014',name:'天赐材料',note:'电解液龙头，可部分转嫁',impact:'→ 中性偏负',cls:'up'},{code:'002407',name:'多氟多',note:'六氟磷酸锂生产商，锂价涨受益',impact:'↑ 正面',cls:'dn'},{code:'002812',name:'恩捷股份',note:'隔膜龙头，下游需求放缓影响出货',impact:'↓ 中性偏负',cls:'up'}]},
+        {industry:'消费电子/3C电池',badge:'negative',badgeText:'成本微压',icon:'📱',dir:'🟡',mag:'low',conf:'low',logic:'消费电子电池用锂量相对较小，且电芯成本在终端产品中占比低（约3-8%），锂价上涨对消费电子厂商影响有限。',lc:'mixed',stocks:[{code:'300207',name:'欣旺达',note:'消费/动力电池，成本双向承压',impact:'↓ 中性偏负',cls:'up'},{code:'002906',name:'华星创业',note:'3C电池供应商，成本略升',impact:'↓ 微弱',cls:'up'}]},
+      ]},
+    fall:{priceVal:'7.8',priceChg:'▼ -11.4%',totalStocks:22,highImpact:10,
+      sparkCols:['rgba(255,77,79,0.26)','rgba(255,77,79,0.3)','rgba(255,77,79,0.33)','#ff4d4f','rgba(255,77,79,0.29)','rgba(255,77,79,0.22)','rgba(255,77,79,0.18)','rgba(255,77,79,0.15)','rgba(255,77,79,0.13)','rgba(255,77,79,0.11)','#00b578'],
+      cards:[
+        {industry:'锂矿资源商（直接承压）',badge:'negative',badgeText:'价格承压',icon:'⛏️',dir:'🔴',mag:'high',conf:'high',logic:'碳酸锂价格下跌直接压缩锂矿资源企业营收和利润。高成本矿山面临亏损风险，部分产能可能减产，估值中枢系统性下移。',lc:'negative',stocks:[{code:'002460',name:'赣锋锂业',note:'业绩弹性大幅收缩，利润压缩明显',impact:'↓ 负面',cls:'up'},{code:'002466',name:'天齐锂业',note:'高资本支出叠加锂价下行，双重承压',impact:'↓ 负面',cls:'up'},{code:'601899',name:'紫金矿业',note:'锂矿资产利润贡献下降',impact:'↓ 中性偏负',cls:'up'},{code:'000792',name:'盐湖股份',note:'卤水提锂成本低，但盈利空间收窄',impact:'↓ 中性偏负',cls:'up'}]},
+        {industry:'动力电池龙头',badge:'positive',badgeText:'成本改善',icon:'🔋',dir:'🟢',mag:'high',conf:'high',logic:'锂价下跌显著降低动力电池材料成本，电池企业毛利率大幅改善，头部企业竞争优势进一步巩固。',lc:'positive',stocks:[{code:'300750',name:'宁德时代',note:'行业龙头，成本改善提升毛利率',impact:'↑ 正面',cls:'dn'},{code:'002074',name:'国轩高科',note:'LFP电池，碳酸锂成本改善显著',impact:'↑ 强正面',cls:'dn'},{code:'688567',name:'孚能科技',note:'三元软包，氢氧化锂成本下降',impact:'↑ 正面',cls:'dn'},{code:'300014',name:'亿纬锂能',note:'多技术路线均受益',impact:'↑ 正面',cls:'dn'}]},
+        {industry:'新能源汽车整车',badge:'positive',badgeText:'成本下降',icon:'🚗',dir:'🟢',mag:'high',conf:'high',logic:'电池成本降低为整车企业提供利润修复和价格竞争的双重空间，既可改善毛利率，也可通过降价扩大市场份额。',lc:'positive',stocks:[{code:'002594',name:'比亚迪',note:'自制电池+整车，受益显著',impact:'↑ 强正面',cls:'dn'},{code:'601127',name:'赛力斯',note:'电池外购，成本改善弹性大',impact:'↑ 正面',cls:'dn'},{code:'600104',name:'上汽集团',note:'新能源业务成本压力缓解',impact:'↑ 正面',cls:'dn'},{code:'000625',name:'长安汽车',note:'阿维塔等车型竞争力提升',impact:'↑ 正面',cls:'dn'}]},
+        {industry:'储能系统/电力设备',badge:'positive',badgeText:'需求景气',icon:'🏭',dir:'🟢',mag:'med',conf:'med',logic:'储能系统成本大幅下降，项目IRR提升，储能招标加速，市场需求景气度上行，集成商订单量有望显著增加。',lc:'positive',stocks:[{code:'300274',name:'阳光电源',note:'储能系统成本降低，竞争力增强',impact:'↑ 正面',cls:'dn'},{code:'601877',name:'正泰电器',note:'储能业务成本改善，订单加速',impact:'↑ 正面',cls:'dn'},{code:'688390',name:'固德威',note:'储能逆变器需求增加',impact:'↑ 正面',cls:'dn'}]},
+        {industry:'电解液/六氟磷酸锂',badge:'positive',badgeText:'成本下降',icon:'⚗️',dir:'🟢',mag:'med',conf:'med',logic:'六氟磷酸锂生产成本下降，电解液整体成本改善。随着下游电池需求增加，电解液出货量有望提升，量利双升逻辑兑现。',lc:'positive',stocks:[{code:'300014',name:'天赐材料',note:'电解液龙头，成本和需求双改善',impact:'↑ 正面',cls:'dn'},{code:'002407',name:'多氟多',note:'六氟磷酸锂成本下降，毛利改善',impact:'↑ 正面',cls:'dn'},{code:'002812',name:'恩捷股份',note:'隔膜龙头，下游需求增加带动出货',impact:'↑ 中性偏正',cls:'dn'}]},
+        {industry:'消费电子/3C电池',badge:'positive',badgeText:'成本微降',icon:'📱',dir:'🟡',mag:'low',conf:'low',logic:'消费电子电池用锂量较小，锂价下跌对整体成本改善有限但依然正向，有助于消费电子品牌维持竞争性定价。',lc:'positive',stocks:[{code:'300207',name:'欣旺达',note:'消费/动力电池成本双降',impact:'↑ 正面',cls:'dn'},{code:'002906',name:'华星创业',note:'3C电池供应商，成本改善',impact:'↑ 微弱',cls:'dn'}]},
+      ]}
+  }
+};
+
+/* ══════════════════════════════════════
+   STATE & STORAGE
+══════════════════════════════════════ */
+let curCom = 'caustic-soda';
+let curSc  = 'rise';
+let WORKING = JSON.parse(JSON.stringify(BASE));
+
+// Persistent state via storage API
+const STORAGE_KEYS = {
+  history:   (com) => `chain-history-${com}`,
+  lastFetch: (com) => `chain-lastfetch-${com}`,
+  metadata:  (com) => `chain-meta-${com}`,
+};
+
+// In-memory history & metadata (backed by storage when available)
+const HISTORY = { 'caustic-soda': [], 'lithium': [] };
+const META = {
+  'caustic-soda': { lastFetch: null, status: 'base', sources: [] },
+  'lithium':       { lastFetch: null, status: 'base', sources: [] },
+};
+let historyIdx = { 'caustic-soda': 0, 'lithium': 0 };
+let isUpdating = false;
+
+/* ══════════════════════════════════════
+   PERSISTENT STORAGE HELPERS
+══════════════════════════════════════ */
+async function loadFromStorage(com) {
+  try {
+    const [histRes, metaRes] = await Promise.all([
+      window.storage.get(STORAGE_KEYS.history(com)),
+      window.storage.get(STORAGE_KEYS.metadata(com)),
+    ]);
+    if (histRes) {
+      const saved = JSON.parse(histRes.value);
+      if (saved && saved.length > 0) {
+        HISTORY[com] = saved;
+        historyIdx[com] = saved.length - 1;
+        // Apply latest snapshot
+        if (saved.length > 0) {
+          const latest = saved[saved.length - 1];
+          if (latest.rise) WORKING[com].rise = latest.rise;
+          if (latest.fall) WORKING[com].fall = latest.fall;
+        }
+      }
+    }
+    if (metaRes) {
+      Object.assign(META[com], JSON.parse(metaRes.value));
+    }
+    updateSidebarDot(com);
+  } catch(e) {
+    // No saved data yet, use base
+  }
+}
+
+async function saveToStorage(com) {
+  try {
+    await window.storage.set(STORAGE_KEYS.history(com), JSON.stringify(HISTORY[com]));
+    await window.storage.set(STORAGE_KEYS.metadata(com), JSON.stringify(META[com]));
+  } catch(e) { console.warn('Storage save failed', e); }
+}
+
+/* ══════════════════════════════════════
+   CLOCK & SCHEDULE
+══════════════════════════════════════ */
+function updateClock() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('hd-time').textContent = `● ${hh}:${mm}`;
+
+  // Progress bar: % of day elapsed toward next 06:00
+  const target = new Date(now);
+  target.setHours(6, 0, 0, 0);
+  if (now >= target) target.setDate(target.getDate() + 1);
+  const msUntil = target - now;
+  const msFull  = 24 * 3600 * 1000;
+  const pct = Math.round((1 - msUntil / msFull) * 100);
+  const el = document.getElementById('day-progress');
+  if (el) el.style.width = pct + '%';
+
+  // Next update
+  const h = Math.floor(msUntil / 3600000);
+  const m = Math.floor((msUntil % 3600000) / 60000);
+  const ntEl = document.getElementById('next-update-time');
+  if (ntEl) ntEl.textContent = `${h}h ${m}m 后`;
+}
+
+/* ══════════════════════════════════════
+   LOG HELPER
+══════════════════════════════════════ */
+function appendLog(msg, type='info') {
+  const box = document.getElementById('ai-log-box');
+  if (!box) return;
+  box.classList.add('visible');
+  const now = new Date();
+  const ts = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+  const line = document.createElement('div');
+  line.className = `log-line ${type}`;
+  line.innerHTML = `<span class="log-ts">${ts}</span>${msg}`;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+}
+
+/* ══════════════════════════════════════
+   AI UPDATE ENGINE  (v2 — split calls, lean prompts)
+   Root cause of old error: sending rise+fall+full existing data
+   in one request exceeded server limits. Fix: one call per
+   scenario, minimal prompt, no existing card JSON in payload.
+══════════════════════════════════════ */
+
+// ── Slim streaming call with retry ──────────────────────────────
+async function callAI(messages, maxTokens = 2000, retries = 2) {
+  // System prompt is kept intentionally SHORT — no JSON schema bloat
+  const system = `You are an A-share supply-chain analyst. Output ONLY valid JSON, no markdown, no explanation.`;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: maxTokens,
+          system,
+          messages,
+          stream: true,
+        })
+      });
+
+      if (!resp.ok) {
+        const errText = await resp.text().catch(() => resp.statusText);
+        // 529 = overloaded, 500 = internal — both are retryable
+        if ((resp.status === 500 || resp.status === 529) && attempt < retries) {
+          const wait = 3000 * (attempt + 1);
+          appendLog(`服务器繁忙 (${resp.status})，${wait/1000}s 后重试 (${attempt+1}/${retries})…`, 'warn');
+          await new Promise(r => setTimeout(r, wait));
+          continue;
+        }
+        throw new Error(`HTTP ${resp.status}: ${errText.slice(0, 120)}`);
+      }
+
+      // Stream read
+      const reader = resp.body.getReader();
+      const dec = new TextDecoder();
+      let full = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        for (const line of dec.decode(value).split('\n')) {
+          if (!line.startsWith('data: ')) continue;
+          const d = line.slice(6).trim();
+          if (d === '[DONE]') continue;
+          try {
+            const p = JSON.parse(d);
+            if (p.type === 'content_block_delta' && p.delta?.text) full += p.delta.text;
+          } catch {}
+        }
+      }
+      return full;
+    } catch (err) {
+      if (attempt < retries) {
+        appendLog(`请求异常：${err.message}，重试中…`, 'warn');
+        await new Promise(r => setTimeout(r, 2500 * (attempt + 1)));
+      } else {
+        throw err;
+      }
+    }
+  }
+}
+
+// ── Parse JSON robustly from AI response ────────────────────────
+function parseJSON(text) {
+  // Try direct parse first
+  try { return JSON.parse(text.trim()); } catch {}
+  // Strip markdown fences
+  const stripped = text.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
+  try { return JSON.parse(stripped); } catch {}
+  // Extract first {...} block
+  const m = text.match(/\{[\s\S]*\}/);
+  if (m) return JSON.parse(m[0]);
+  throw new Error('AI返回内容无法解析为JSON');
+}
+
+// ── Build one scenario's cards via a single focused call ────────
+async function fetchScenarioCards(com, comName, scenario, today) {
+  const scLabel = scenario === 'rise' ? '价格大幅上涨' : '价格大幅下跌';
+  const oldCards = WORKING[com][scenario].cards;
+  // Send only industry names + badge to give context without huge payload
+  const existingIndustries = oldCards.map(c => c.industry).join('、');
+
+  const prompt = `今天${today}，分析「${comName}」${scLabel}对A股各行业和个股的影响。
+
+现有行业：${existingIndustries}
+
+输出JSON数组（cards），每个元素结构：
+{"industry":"行业名","badge":"positive|negative|mixed","badgeText":"3字标签","icon":"emoji","dir":"🟢|🔴|🟡","mag":"high|med|low","conf":"high|med|low","logic":"2句影响逻辑","lc":"positive|negative|mixed","aiInsight":"变化说明或null","isNew":false,"isChanged":false,"stocks":[{"code":"6位","name":"公司名","note":"10字说明","impact":"影响描述","cls":"up|dn|neutral","isDelta":"up|dn|same"}]}
+
+要求：
+- 保留现有行业，可新增重要行业（isNew:true）
+- 每个行业列3-5只A股，使用真实代码
+- 仅输出JSON数组，无其他文字`;
+
+  appendLog(`▶ 请求 ${scenario === 'rise' ? '涨价' : '跌价'} 情景分析…`, 'ai');
+  const raw = await callAI([{ role: 'user', content: prompt }], 2500);
+  appendLog(`  收到 ${raw.length} 字符`, 'info');
+
+  // Parse — expect array or {cards:[...]}
+  let cards;
+  const parsed = parseJSON(raw);
+  if (Array.isArray(parsed)) cards = parsed;
+  else if (Array.isArray(parsed.cards)) cards = parsed.cards;
+  else throw new Error(`${scenario} 情景返回格式异常`);
+
+  return cards;
+}
+
+// ── Fetch meta (summary, price, diffSummary) ────────────────────
+async function fetchMeta(com, comName, today) {
+  const prompt = `今天${today}，给出「${comName}」的简要市场摘要。输出JSON：
+{"summary":"一句话摘要","priceVal":"当前价格数字字符串","priceChg":"▲ +X.X% 或 ▼ -X.X%","diffSummary":["变化点1","变化点2"]}
+仅输出JSON。`;
+  const raw = await callAI([{ role: 'user', content: prompt }], 300);
+  try { return parseJSON(raw); } catch { return {}; }
+}
+
+// ── Apply parsed cards onto WORKING with diff markers ───────────
+function applyCards(com, scenario, newCards) {
+  const oldCards = WORKING[com][scenario].cards;
+  WORKING[com][scenario].cards = newCards.map(nc => {
+    const oc = oldCards.find(c => c.industry === nc.industry);
+    return {
+      ...nc,
+      lc: nc.lc || nc.badge,
+      _isNew:     !oc,
+      _isChanged: oc && (oc.badge !== nc.badge || oc.mag !== nc.mag || oc.conf !== nc.conf),
+      _aiInsight: nc.aiInsight || null,
+      stocks: (nc.stocks || []).map(s => ({
+        ...s,
+        _isNew:  oc ? !oc.stocks?.find(os => os.code === s.code) : true,
+        _delta:  s.isDelta !== 'same' ? s.isDelta : null,
+      }))
+    };
+  });
+}
+
+// ── Main orchestrator ────────────────────────────────────────────
+async function runAIUpdate(com, manual = false) {
+  if (isUpdating) return;
+  isUpdating = true;
+
+  const btn    = document.getElementById('btn-manual-update');
+  const btnTxt = document.getElementById('manual-btn-text');
+  if (btn)    { btn.disabled = true; btn.classList.add('running'); }
+  if (btnTxt) btnTxt.textContent = '⏳ AI 分析中…';
+
+  META[com].status  = 'running';
+  META[com].sources = [];
+  renderStatusBar(com);
+
+  const logBox = document.getElementById('ai-log-box');
+  if (logBox) logBox.classList.add('visible');
+
+  const comName = com === 'caustic-soda' ? '烧碱（NaOH）' : '碳酸锂（Li₂CO₃）';
+  const today   = new Date().toLocaleDateString('zh-CN');
+
+  appendLog(`▶ 开始更新：${comName}`, 'info');
+  appendLog(`  策略：拆分调用（涨价 / 跌价 / 摘要），每次独立请求`, 'info');
+
+  // Simulate source scan
+  const sources = ['生意社现货','卓创资讯','行业研报','A股公告'];
+  for (const s of sources) {
+    await new Promise(r => setTimeout(r, 200 + Math.random() * 300));
+    appendLog(`  检索 ${s}…`, 'info');
+    META[com].sources.push({ name: s, status: 'fetched' });
+    renderStatusBar(com);
+  }
+
+  const prevRise = JSON.parse(JSON.stringify(WORKING[com].rise));
+  const prevFall = JSON.parse(JSON.stringify(WORKING[com].fall));
+
+  try {
+    // ── Step 1: rise scenario ──
+    appendLog('【1/3】涨价情景分析…', 'ai');
+    const riseCards = await fetchScenarioCards(com, comName, 'rise', today);
+    applyCards(com, 'rise', riseCards);
+    appendLog(`  ✓ 涨价：${riseCards.length} 个行业`, 'ok');
+
+    // ── Step 2: fall scenario ──
+    appendLog('【2/3】跌价情景分析…', 'ai');
+    const fallCards = await fetchScenarioCards(com, comName, 'fall', today);
+    applyCards(com, 'fall', fallCards);
+    appendLog(`  ✓ 跌价：${fallCards.length} 个行业`, 'ok');
+
+    // ── Step 3: meta ──
+    appendLog('【3/3】获取价格摘要…', 'ai');
+    const meta = await fetchMeta(com, comName, today);
+    if (meta.priceVal) {
+      WORKING[com].rise.priceVal = meta.priceVal;
+      WORKING[com].rise.priceChg = meta.priceChg || WORKING[com].rise.priceChg;
+    }
+    appendLog(`  ✓ 摘要：${meta.summary || '已获取'}`, 'ok');
+
+    // ── Compute diffs ──
+    const diffItems      = meta.diffSummary || [];
+    const newIndustries  = WORKING[com].rise.cards.filter(c => c._isNew).map(c => c.industry);
+    const changedInds    = WORKING[com].rise.cards.filter(c => c._isChanged).map(c => c.industry);
+
+    // Update stats
+    WORKING[com].rise.totalStocks = WORKING[com].rise.cards.reduce((a,c)=>a+(c.stocks?.length||0),0);
+    WORKING[com].rise.highImpact  = WORKING[com].rise.cards.filter(c=>c.mag==='high').length;
+    WORKING[com].fall.totalStocks = WORKING[com].fall.cards.reduce((a,c)=>a+(c.stocks?.length||0),0);
+    WORKING[com].fall.highImpact  = WORKING[com].fall.cards.filter(c=>c.mag==='high').length;
+
+    // Save snapshot
+    const snap = {
+      date:             today,
+      time:             new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}),
+      label:            meta.summary || 'AI更新',
+      rise:             JSON.parse(JSON.stringify(WORKING[com].rise)),
+      fall:             JSON.parse(JSON.stringify(WORKING[com].fall)),
+      diffItems,
+      newIndustries,
+      changedIndustries: changedInds,
+      newsDigest:       [],
+    };
+    HISTORY[com].push(snap);
+    historyIdx[com] = HISTORY[com].length - 1;
+
+    Object.assign(META[com], {
+      status:            'fresh',
+      lastFetch:         new Date().toISOString(),
+      summary:           meta.summary,
+      diffItems,
+      newIndustries,
+      changedIndustries: changedInds,
+    });
+
+    await saveToStorage(com);
+    appendLog(`✓ 全部完成，已持久化。新增${newIndustries.length}个行业，变化${changedInds.length}个。`, 'ok');
+    updateSidebarDot(com);
+    renderAll();
+
+  } catch (err) {
+    appendLog(`✗ 更新失败：${err.message}`, 'err');
+    appendLog('  已回滚至更新前数据', 'warn');
+    WORKING[com].rise = prevRise;
+    WORKING[com].fall = prevFall;
+    META[com].status = 'error';
+    updateSidebarDot(com);
+    renderStatusBar(com);
+  }
+
+  isUpdating = false;
+  if (btn)    { btn.disabled = false; btn.classList.remove('running'); }
+  if (btnTxt) btnTxt.textContent = '⚡ 立即更新当前品种';
+}
+
+function triggerManualUpdate() {
+  runAIUpdate(curCom, true);
+}
+
+/* ══════════════════════════════════════
+   SIDEBAR DOT
+══════════════════════════════════════ */
+function updateSidebarDot(com) {
+  const dot = document.getElementById(`dot-${com}`);
+  if (!dot) return;
+  const s = META[com].status;
+  dot.className = 'ai-dot';
+  if (s === 'fresh') dot.classList.add('');       // teal (default)
+  else if (s === 'stale') dot.classList.add('stale');
+  else if (s === 'error') dot.classList.add('error');
+  else if (s === 'running') dot.style.animation = 'pulse 0.8s ease infinite';
+  dot.title = s === 'fresh' ? '今日已更新' : s === 'stale' ? '数据已过期' : s === 'error' ? '更新失败' : s === 'base' ? '使用基准数据' : '更新中…';
+}
+
+/* ══════════════════════════════════════
+   RENDER STATUS BAR
+══════════════════════════════════════ */
+function renderStatusBar(com) {
+  const el = document.getElementById('status-bar');
+  if (!el) return;
+  const meta = META[com];
+  const status = meta.status;
+  const statusClass = status === 'fresh' ? 'fresh' : status === 'running' ? 'running' : status === 'error' ? 'error' : 'stale';
+  const dotCls = statusClass;
+
+  const lastTime = meta.lastFetch
+    ? new Date(meta.lastFetch).toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})
+    : '尚未更新';
+
+  const srcChips = (meta.sources||[]).map(s =>
+    `<span class="src-chip ${s.status}">${s.name}</span>`
+  ).join('');
+
+  let statusMsg = '';
+  if (status === 'fresh') statusMsg = `<strong>今日已更新</strong> · ${lastTime} · Claude AI + 联网分析`;
+  else if (status === 'running') statusMsg = `<strong>AI 分析中…</strong> · 正在检索最新行业数据，请稍候`;
+  else if (status === 'error') statusMsg = `<strong>更新失败</strong> · 请点击"立即更新"重试`;
+  else if (status === 'base') statusMsg = `<strong>使用基准数据</strong> · 尚未进行AI更新 · 点击左侧"立即更新"获取最新分析`;
+  else statusMsg = `<strong>数据已过期</strong> · 上次更新：${lastTime}`;
+
+  el.className = `update-status ${statusClass} fu`;
+  el.innerHTML = `
+    <div class="status-dot ${dotCls}"></div>
+    <div class="status-text">${statusMsg}</div>
+    ${srcChips ? `<div class="status-sources">${srcChips}</div>` : ''}
+  `;
+}
+
+/* ══════════════════════════════════════
+   RENDER MAIN
+══════════════════════════════════════ */
+function renderAll() {
+  const c = WORKING[curCom];
+  const s = c[curSc];
+  const content = document.getElementById('main-content');
+  const history = HISTORY[curCom];
+  const meta = META[curCom];
+  const negCount = s.cards.filter(x=>x.badge==='negative').length;
+  const posCount = s.cards.filter(x=>x.badge==='positive').length;
+  const scLabel = curSc==='rise'?'上涨':'下跌';
+  const priceColor = curSc==='rise'?'var(--up)':'var(--dn)';
+  const com = curCom;
+
+  const sparkHTML = c.spark.map((h,i)=>
+    `<div class="sbar" style="height:${h}%;background:${s.sparkCols?.[i]||'rgba(240,180,41,0.25)'}"></div>`).join('');
+  const stageHTML = items => items.map(p=>
+    `<div class="cp${p.h?' hl':''}"><div class="cp-name">${p.name}</div><div class="cp-note">${p.note}</div></div>`).join('');
+
+  // History timeline
+  const historyHTML = history.length > 0 ? `
+    <div class="history-row fu">
+      <div class="hist-node active" onclick="restoreHistory(-1,true)">
+        <div class="hist-dot"></div>
+        <div class="hist-label">基准</div>
+      </div>
+      ${history.map((h,i) => `
+        <div class="hist-line"></div>
+        <div class="hist-node${i===historyIdx[com]?' active':''}" onclick="restoreHistory(${i})" title="${h.label}">
+          <div class="hist-dot"></div>
+          <div class="hist-label">${h.time||h.date}</div>
+        </div>`).join('')}
+    </div>` : '';
+
+  // Diff section
+  const snap = history[historyIdx[com]];
+  const diffItems = snap?.diffItems || [];
+  const newInd = snap?.newIndustries || [];
+  const changedInd = snap?.changedIndustries || [];
+  const hasDiff = diffItems.length > 0 || newInd.length > 0 || changedInd.length > 0;
+
+  const diffHTML = hasDiff ? `
+    <div class="diff-section visible fu">
+      <div class="diff-title">✦ 本次更新变化摘要</div>
+      <div class="diff-items">
+        ${newInd.map(x=>`<div class="diff-item"><span class="diff-bullet new">⊕</span><span>新增行业：<strong>${x}</strong></span></div>`).join('')}
+        ${changedInd.map(x=>`<div class="diff-item"><span class="diff-bullet changed">◈</span><span>影响权重变化：<strong>${x}</strong></span></div>`).join('')}
+        ${diffItems.map(x=>`<div class="diff-item"><span class="diff-bullet added">→</span><span>${x}</span></div>`).join('')}
+      </div>
+    </div>` : '';
+
+  content.innerHTML = `
+    <div id="status-bar" class="update-status stale fu"></div>
+    <div id="ai-log-box" class="ai-log"></div>
+    ${diffHTML}
+    ${historyHTML}
+
+    <div class="product-header fu">
+      <div class="product-title-area">
+        <div class="product-title">${c.title} <span class="ptag ${c.tag.cls}">${c.tag.text}</span></div>
+        <div class="product-desc">${c.desc}</div>
+      </div>
+      <div class="price-panel">
+        <div class="price-label">${c.priceLabel}</div>
+        <div><span class="price-value" style="color:${priceColor}">${s.priceVal}</span><span class="price-unit">${c.priceUnit}</span></div>
+        <div class="price-chg-row"><span class="price-chg" style="color:${priceColor}">${s.priceChg}</span><span style="font-size:9px;color:var(--muted)">月度涨跌</span></div>
+        <div class="sparkrow">${sparkHTML}</div>
+      </div>
+    </div>
+
+    <div class="scenario-row fu">
+      <span class="sc-lbl">模拟情景：</span>
+      <button class="sc-btn rise${curSc==='rise'?' active':''}" onclick="switchSc('rise')">🔺 价格上涨</button>
+      <button class="sc-btn fall${curSc==='fall'?' active':''}" onclick="switchSc('fall')">🔻 价格下跌</button>
+    </div>
+
+    <div class="sec-label fu">产业链结构</div>
+    <div class="chain-flow fu">
+      <div class="chain-stage"><div class="stage-hd up-s">上游原材料</div><div class="stage-bd up-s">${stageHTML(c.chain.upstream)}</div></div>
+      <div class="chain-arrow">→</div>
+      <div class="chain-stage"><div class="stage-hd mid-s">中游生产</div><div class="stage-bd mid-s">${stageHTML(c.chain.midstream)}</div></div>
+      <div class="chain-arrow">→</div>
+      <div class="chain-stage"><div class="stage-hd dn-s">下游消费方向</div><div class="stage-bd dn-s">${stageHTML(c.chain.downstream)}</div></div>
+    </div>
+
+    <div class="sumbar fu">
+      <div class="si"><div class="sdot r"></div><div class="stxt"><strong>${negCount}</strong> 个行业受负面影响</div></div>
+      <div class="sdiv"></div>
+      <div class="si"><div class="sdot g"></div><div class="stxt"><strong>${posCount}</strong> 个行业受正面影响</div></div>
+      <div class="sdiv"></div>
+      <div class="si"><div class="sdot o"></div><div class="stxt">涉及 <strong>${s.totalStocks}</strong> 只A股标的，高影响 <strong>${s.highImpact}</strong> 只</div></div>
+      <div class="sdiv"></div>
+      <div class="si"><div class="sdot p"></div><div class="stxt">高置信 <strong>${s.cards.filter(x=>x.conf==='high').length}</strong> · 中 <strong>${s.cards.filter(x=>x.conf==='med').length}</strong> · 低 <strong>${s.cards.filter(x=>x.conf==='low').length}</strong></div></div>
+    </div>
+
+    <div class="mag-row fu">
+      <span style="margin-right:3px">影响幅度：</span>
+      <div class="mi"><div class="md h"></div><span>高（&gt;15%）</span></div>
+      <div class="mi"><div class="md m"></div><span>中（5-15%）</span></div>
+      <div class="mi"><div class="md l"></div><span>低（&lt;5%）</span></div>
+    </div>
+
+    <div class="sec-label fu">${curCom==='caustic-soda'?'烧碱':'碳酸锂'}价格${scLabel} · 下游行业影响分析</div>
+    <div class="impact-grid" id="impact-grid"></div>
+
+    <div class="footer-note">
+      ⚠️ 本工具仅供研究参考，不构成投资建议。AI分析结果基于语言模型推理，需结合实际数据验证。<br>
+      每日 06:00 自动更新 ｜ Claude AI + 联网分析 ｜ 历史版本可回溯对比 ｜ Demo v0.4
+    </div>
+  `;
+
+  renderStatusBar(com);
+
+  // Render cards
+  const grid = document.getElementById('impact-grid');
+  s.cards.forEach((card,i) => {
+    const el = document.createElement('div');
+    let cls = 'icard fu';
+    if (card._isNew) cls += ' is-new';
+    else if (card._isChanged) cls += ' is-changed';
+    el.className = cls;
+    el.style.animationDelay = (i*0.055)+'s';
+
+    const ml = card.mag==='high'?'高影响':card.mag==='med'?'中影响':'低影响';
+    const cl = card.conf==='high'?'高置信':card.conf==='med'?'中置信':'低置信';
+
+    const aiBox = card._aiInsight ? `
+      <div class="ai-insight-box">
+        <div class="ai-insight-lbl">✦ AI更新说明</div>
+        ${card._aiInsight}
+      </div>` : '';
+
+    const rows = (card.stocks||[]).map(st=>`
+      <div class="srow${st._isNew?' is-new':''}">
+        <div class="scode">${st.code}</div>
+        <div class="sname">${st.name}${st._delta?`<span class="delta-tag ${st._delta}">${st._delta==='up'?'↑升':'↓降'}</span>`:''}</div>
+        <div class="snote">${st.note}</div>
+        <div class="simpact ${st.cls}">${st.impact}</div>
+      </div>`).join('');
+
+    el.innerHTML = `
+      <div class="icard-hd">
+        <span style="font-size:18px">${card.icon}</span>
+        <span class="iindustry">${card.industry}</span>
+        <span class="ibadge ${card.badge}">${card.badgeText}<span class="magbadge ${card.mag}">${ml}</span></span>
+        <span class="confbadge ${card.conf}">${cl}</span>
+        <span class="idir">${card.dir}</span>
+      </div>
+      <div class="icard-body">
+        ${aiBox}
+        <div class="ilogic ${card.lc}">${card.logic}</div>
+        <div class="slist">${rows}</div>
+      </div>`;
+    grid.appendChild(el);
+  });
+}
+
+/* ══════════════════════════════════════
+   HISTORY RESTORE
+══════════════════════════════════════ */
+function restoreHistory(idx, isBase=false) {
+  if (isBase) {
+    WORKING[curCom] = JSON.parse(JSON.stringify(BASE[curCom]));
+    historyIdx[curCom] = -1;
+  } else {
+    const snap = HISTORY[curCom][idx];
+    if (!snap) return;
+    historyIdx[curCom] = idx;
+    if (snap.rise) WORKING[curCom].rise = JSON.parse(JSON.stringify(snap.rise));
+    if (snap.fall) WORKING[curCom].fall = JSON.parse(JSON.stringify(snap.fall));
+  }
+  renderAll();
+}
+
+/* ══════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════ */
+function selectCommodity(id, el) {
+  if (curCom === id) return;
+  curCom = id;
+  curSc = 'rise';
+  document.querySelectorAll('.citem').forEach(x => x.classList.remove('active'));
+  el.classList.add('active');
+  renderAll();
+}
+function switchSc(s) {
+  if (curSc === s) return;
+  curSc = s;
+  renderAll();
+}
+
+/* ══════════════════════════════════════
+   AUTO-UPDATE SCHEDULER
+══════════════════════════════════════ */
+function scheduleDailyUpdate() {
+  const now = new Date();
+  const next = new Date(now);
+  next.setHours(6, 0, 0, 0);
+  if (now >= next) next.setDate(next.getDate() + 1);
+  const msUntil = next - now;
+  setTimeout(async () => {
+    appendLog('🕕 每日定时更新触发！', 'ai');
+    for (const com of ['caustic-soda', 'lithium']) {
+      await runAIUpdate(com);
+      await new Promise(r => setTimeout(r, 3000));
+    }
+    scheduleDailyUpdate(); // reschedule
+  }, msUntil);
+  appendLog(`定时更新已安排，距下次运行 ${Math.round(msUntil/60000)} 分钟`, 'info');
+}
+
+/* ══════════════════════════════════════
+   INIT
+══════════════════════════════════════ */
+async function init() {
+  // Load persisted data
+  await loadFromStorage('caustic-soda');
+  await loadFromStorage('lithium');
+
+  // Clock
+  updateClock();
+  setInterval(updateClock, 15000);
+
+  // Check staleness (>23h since last update = stale)
+  for (const com of ['caustic-soda', 'lithium']) {
+    if (META[com].lastFetch) {
+      const age = Date.now() - new Date(META[com].lastFetch).getTime();
+      if (age > 23 * 3600 * 1000) META[com].status = 'stale';
+    }
+    updateSidebarDot(com);
+  }
+
+  renderAll();
+  scheduleDailyUpdate();
+}
+
+init();
+</script>
+</body>
+</html>
