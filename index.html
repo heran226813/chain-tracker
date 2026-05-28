@@ -1259,7 +1259,7 @@ function updateSidebarDot(com) {
   if (!dot) return;
   const s = META[com].status;
   dot.className = 'ai-dot';
-  if (s === 'fresh') dot.classList.add('');       // teal (default)
+  if (s === 'fresh') { /* teal (default) */ }
   else if (s === 'stale') dot.classList.add('stale');
   else if (s === 'error') dot.classList.add('error');
   else if (s === 'running') dot.style.animation = 'pulse 0.8s ease infinite';
