@@ -12,7 +12,7 @@
 |------|------|
 | 📊 产业链结构图 | 上游原材料 → 中游生产 → 下游消费三层可视化 |
 | 🔺🔻 情景模拟 | 一键切换价格上涨/下跌情景，影响逻辑自动反转 |
-| ✦ AI 每日更新 | Claude AI 自动分析最新行业状况，更新关联权重 |
+| ✦ AI 每日更新 | DeepSeek AI 自动分析最新行业状况，更新关联权重 |
 | 📈 影响权重标注 | 高/中/低影响幅度 + 置信度评分 |
 | 🏷️ 变化标记 | NEW / UPDATED 标签，个股影响度升降标注 |
 | 🕐 历史回溯 | 每次AI更新保存快照，可对比任意历史版本 |
@@ -46,13 +46,13 @@ chain-tracker/
 ## 技术栈
 
 - 纯 HTML + CSS + Vanilla JS（无框架依赖）
-- Anthropic Claude API（AI 分析引擎）
+- DeepSeek API（AI 分析引擎）
 - Artifact Storage API（历史快照持久化）
 
 ## 开发说明
 
-本项目配合 **Claude AI + GitHub MCP** 开发：
-- Claude 直接读写仓库文件
+本项目配合 **DeepSeek AI + GitHub MCP** 开发：
+- DeepSeek AI 直接读写仓库文件
 - 修改后自动触发 GitHub Pages 部署
 - 任何设备打开网址即可访问最新版本
 
