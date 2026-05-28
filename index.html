@@ -297,6 +297,184 @@ header{padding:0 28px;height:58px;display:flex;align-items:center;justify-conten
 
 .footer-note{font-size:9px;color:var(--muted);text-align:center;padding:14px 0 8px;border-top:1px solid var(--border);margin-top:20px;line-height:1.9;}
 
+/* ── Mode tabs ── */
+.mode-tabs{display:flex;gap:3px;background:rgba(255,255,255,0.04);border-radius:8px;padding:3px;border:1px solid var(--border);}
+.mode-tab{padding:4px 13px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:'Noto Sans SC',sans-serif;transition:all 0.18s;white-space:nowrap;}
+.mode-tab.active{background:rgba(240,180,41,0.12);color:var(--gold);}
+.mode-tab:hover:not(.active){color:var(--txt2);}
+
+/* ── Event panel ── */
+.event-panel{flex:1;overflow-y:auto;padding:24px 28px;display:none;}
+.event-panel.active{display:block;}
+.price-panel-wrap{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
+.price-panel-wrap.hidden{display:none;}
+
+/* Input area */
+.event-input-area{
+  background:var(--bg2);border:1px solid var(--border);border-radius:14px;
+  padding:22px 24px;margin-bottom:22px;
+}
+.event-input-title{
+  font-family:'Noto Serif SC',serif;font-size:17px;font-weight:700;
+  margin-bottom:6px;display:flex;align-items:center;gap:9px;
+}
+.event-input-sub{font-size:11px;color:var(--txt2);margin-bottom:16px;line-height:1.65;}
+.event-input-sub span{color:var(--gold);}
+.event-textarea{
+  width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:9px;
+  padding:13px 16px;font-size:13px;color:var(--txt);
+  font-family:'Noto Sans SC',sans-serif;resize:none;height:90px;
+  outline:none;transition:border-color 0.18s;line-height:1.7;
+}
+.event-textarea:focus{border-color:rgba(240,180,41,0.4);}
+.event-textarea::placeholder{color:var(--muted);}
+.event-actions{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap;}
+.btn-analyze{
+  padding:9px 22px;border-radius:8px;font-size:13px;font-weight:700;
+  cursor:pointer;border:none;
+  background:linear-gradient(135deg,var(--gold),var(--orange));
+  color:#0a0e17;font-family:'Noto Sans SC',sans-serif;
+  transition:all 0.18s;display:flex;align-items:center;gap:7px;
+  box-shadow:0 2px 12px rgba(240,180,41,0.25);
+}
+.btn-analyze:hover{transform:translateY(-1px);box-shadow:0 4px 18px rgba(240,180,41,0.35);}
+.btn-analyze:disabled{opacity:0.45;cursor:not-allowed;transform:none;}
+.btn-analyze.running{animation:pulse 1s ease infinite;}
+.event-examples{display:flex;gap:7px;flex-wrap:wrap;}
+.ex-chip{
+  font-size:10px;padding:4px 10px;border-radius:20px;cursor:pointer;
+  border:1px solid var(--border);color:var(--txt2);background:transparent;
+  font-family:'Noto Sans SC',sans-serif;transition:all 0.15s;white-space:nowrap;
+}
+.ex-chip:hover{border-color:rgba(240,180,41,0.35);color:var(--gold);}
+
+/* Analysis progress */
+.event-progress{
+  background:var(--bg2);border:1px solid rgba(167,139,250,0.2);border-radius:10px;
+  padding:16px 18px;margin-bottom:18px;display:none;
+}
+.event-progress.visible{display:block;}
+.ep-title{font-size:11px;font-weight:600;color:var(--purple);margin-bottom:10px;display:flex;align-items:center;gap:7px;}
+.ep-steps{display:flex;flex-direction:column;gap:6px;}
+.ep-step{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--muted);}
+.ep-step.done{color:var(--teal);}
+.ep-step.active{color:var(--txt2);animation:pulse 1s ease infinite;}
+.ep-icon{width:18px;height:18px;border-radius:50%;border:1.5px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;}
+.ep-step.done .ep-icon{background:rgba(45,212,191,0.15);}
+.ep-step.active .ep-icon{background:rgba(167,139,250,0.1);border-color:var(--purple);}
+
+/* Event result */
+.event-result{display:none;}
+.event-result.visible{display:block;}
+
+/* Event header card */
+.event-header-card{
+  background:linear-gradient(135deg,rgba(240,180,41,0.07),rgba(251,146,60,0.04));
+  border:1px solid rgba(240,180,41,0.2);border-radius:12px;
+  padding:18px 22px;margin-bottom:20px;
+}
+.event-title-row{display:flex;align-items:flex-start;gap:14px;margin-bottom:12px;}
+.event-icon-big{font-size:32px;flex-shrink:0;}
+.event-meta{flex:1;}
+.event-name{font-family:'Noto Serif SC',serif;font-size:18px;font-weight:700;margin-bottom:4px;line-height:1.4;}
+.event-type-badge{font-size:10px;padding:2px 9px;border-radius:20px;font-weight:600;margin-right:6px;}
+.event-type-badge.policy{background:rgba(56,189,248,0.12);color:var(--blue);border:1px solid rgba(56,189,248,0.22);}
+.event-type-badge.macro{background:rgba(167,139,250,0.12);color:var(--purple);border:1px solid rgba(167,139,250,0.22);}
+.event-type-badge.industry{background:rgba(240,180,41,0.1);color:var(--gold);border:1px solid rgba(240,180,41,0.2);}
+.event-type-badge.geopolitics{background:rgba(255,77,79,0.1);color:var(--up);border:1px solid rgba(255,77,79,0.2);}
+.event-type-badge.tech{background:rgba(45,212,191,0.1);color:var(--teal);border:1px solid rgba(45,212,191,0.2);}
+.event-summary{font-size:12px;color:var(--txt2);line-height:1.75;margin-top:8px;}
+.event-stats-row{display:flex;gap:18px;flex-wrap:wrap;}
+.event-stat{display:flex;flex-direction:column;gap:2px;}
+.event-stat-label{font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;}
+.event-stat-value{font-size:14px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.event-stat-value.up{color:var(--up);}
+.event-stat-value.dn{color:var(--dn);}
+.event-stat-value.mix{color:var(--gold);}
+
+/* Chain impact flow (event version) */
+.event-chain{display:flex;gap:8px;margin-bottom:22px;overflow-x:auto;padding-bottom:4px;align-items:stretch;}
+.ec-node{
+  flex:1;min-width:130px;background:var(--bg2);border:1px solid var(--border);
+  border-radius:9px;padding:11px 12px;
+}
+.ec-node-title{font-size:9px;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:8px;font-weight:600;}
+.ec-node.bullish{border-color:rgba(0,181,120,0.3);background:rgba(0,181,120,0.04);}
+.ec-node.bullish .ec-node-title{color:var(--dn);}
+.ec-node.bearish{border-color:rgba(255,77,79,0.3);background:rgba(255,77,79,0.04);}
+.ec-node.bearish .ec-node-title{color:var(--up);}
+.ec-node.mixed{border-color:rgba(240,180,41,0.3);background:rgba(240,180,41,0.04);}
+.ec-node.mixed .ec-node-title{color:var(--gold);}
+.ec-item{font-size:10px;color:var(--txt2);padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04);line-height:1.5;}
+.ec-item:last-child{border-bottom:none;}
+.ec-arrow{display:flex;align-items:center;color:var(--muted);font-size:14px;flex-shrink:0;padding-top:30px;}
+
+/* Sector cards */
+.sector-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;margin-bottom:22px;}
+.sector-card{background:var(--bg2);border:1px solid var(--border);border-radius:11px;overflow:hidden;transition:all 0.18s;}
+.sector-card:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,0.25);}
+.sector-card.bullish{border-color:rgba(0,181,120,0.3);}
+.sector-card.bearish{border-color:rgba(255,77,79,0.3);}
+.sector-card.mixed{border-color:rgba(240,180,41,0.3);}
+.sector-hd{padding:11px 14px 9px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--border);}
+.sector-icon{font-size:20px;}
+.sector-name{font-size:13px;font-weight:700;flex:1;}
+.sector-badge{font-size:9px;padding:2px 7px;border-radius:20px;font-weight:600;}
+.sector-badge.bullish{background:rgba(0,181,120,0.1);color:var(--dn);}
+.sector-badge.bearish{background:rgba(255,77,79,0.11);color:var(--up);}
+.sector-badge.mixed{background:rgba(240,180,41,0.1);color:var(--gold);}
+.sector-dir{font-size:20px;}
+.sector-body{padding:11px 14px;}
+.sector-logic{font-size:11px;color:var(--txt2);line-height:1.75;margin-bottom:11px;padding:7px 9px;background:rgba(255,255,255,0.016);border-radius:5px;border-left:3px solid var(--border);}
+.sector-card.bullish .sector-logic{border-left-color:rgba(0,181,120,0.38);}
+.sector-card.bearish .sector-logic{border-left-color:rgba(255,77,79,0.38);}
+.sector-card.mixed .sector-logic{border-left-color:rgba(240,180,41,0.35);}
+
+/* Stock cards within sector */
+.stock-cards{display:flex;flex-direction:column;gap:7px;}
+.stock-card{
+  background:var(--bg3);border-radius:8px;padding:9px 11px;
+  border:1px solid var(--border);transition:all 0.15s;
+}
+.stock-card:hover{border-color:rgba(240,180,41,0.28);}
+.stock-card-top{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.sc-rank{width:18px;height:18px;border-radius:50%;background:rgba(240,180,41,0.12);color:var(--gold);font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.sc-code{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--blue);flex-shrink:0;}
+.sc-name{font-size:12px;font-weight:600;flex:1;}
+.sc-impact-badge{font-size:9px;padding:2px 7px;border-radius:12px;font-weight:700;flex-shrink:0;}
+.sc-impact-badge.strong-bull{background:rgba(0,181,120,0.15);color:var(--dn);}
+.sc-impact-badge.bull{background:rgba(0,181,120,0.09);color:var(--dn);}
+.sc-impact-badge.strong-bear{background:rgba(255,77,79,0.15);color:var(--up);}
+.sc-impact-badge.bear{background:rgba(255,77,79,0.09);color:var(--up);}
+.sc-impact-badge.neutral{background:rgba(136,153,180,0.09);color:var(--neu);}
+.sc-quote{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;flex-shrink:0;}
+.sc-quote.up{color:var(--up);}
+.sc-quote.dn{color:var(--dn);}
+.sc-quote.flat{color:var(--neu);}
+.sc-quote.loading{color:var(--muted);animation:pulse 1s ease infinite;}
+.sc-reason{font-size:10px;color:var(--txt2);line-height:1.65;padding:5px 7px;background:rgba(255,255,255,0.02);border-radius:4px;border-left:2px solid var(--border);}
+.stock-card.bullish .sc-reason{border-left-color:rgba(0,181,120,0.35);}
+.stock-card.bearish .sc-reason{border-left-color:rgba(255,77,79,0.35);}
+
+/* History list */
+.event-history{margin-top:22px;}
+.eh-title{font-size:10px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;margin-bottom:10px;}
+.eh-list{display:flex;flex-direction:column;gap:6px;}
+.eh-item{
+  display:flex;align-items:center;gap:10px;padding:8px 12px;
+  background:var(--bg2);border:1px solid var(--border);border-radius:7px;
+  cursor:pointer;transition:all 0.15s;
+}
+.eh-item:hover{border-color:rgba(240,180,41,0.25);}
+.eh-item-icon{font-size:16px;flex-shrink:0;}
+.eh-item-name{font-size:11px;font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.eh-item-date{font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;flex-shrink:0;}
+.eh-item-stats{font-size:9px;flex-shrink:0;display:flex;gap:5px;}
+.eh-bull{color:var(--dn);}
+.eh-bear{color:var(--up);}
+.btn-clear-history{font-size:9px;color:var(--muted);background:none;border:none;cursor:pointer;padding:4px 0;text-decoration:underline;font-family:'Noto Sans SC',sans-serif;}
+.btn-clear-history:hover{color:var(--txt2);}
+
 /* ── Animations ── */
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 .fu{animation:fadeUp 0.3s ease both;}
@@ -321,8 +499,13 @@ header{padding:0 28px;height:58px;display:flex;align-items:center;justify-conten
     </div>
   </div>
   <div class="header-right">
-    <span class="hbadge ai">✦ Claude AI 每日更新</span>
-    <span class="hbadge">v0.4</span>
+    <!-- Mode tabs -->
+    <div class="mode-tabs">
+      <button class="mode-tab active" id="tab-price" onclick="switchMode('price')">📊 价格影响</button>
+      <button class="mode-tab" id="tab-event" onclick="switchMode('event')">⚡ 事件分析</button>
+    </div>
+    <span class="hbadge ai">✦ Claude AI</span>
+    <span class="hbadge">v0.5</span>
     <span class="hbadge live" id="hd-time">● --:--</span>
   </div>
 </header>
@@ -383,7 +566,50 @@ header{padding:0 28px;height:58px;display:flex;align-items:center;justify-conten
 </aside>
 
 <!-- ── Main content ── -->
-<main class="content" id="main-content"></main>
+<main class="content" id="main-content" style="flex:1;overflow-y:auto;padding:20px 26px;"></main>
+
+<!-- ── Event Analysis Panel ── -->
+<div class="event-panel" id="event-panel">
+
+  <!-- Input -->
+  <div class="event-input-area fu">
+    <div class="event-input-title">⚡ 事件驱动分析</div>
+    <div class="event-input-sub">输入一个近期重大事件，AI 将自动拆解<span>影响的产业链层次</span>、<span>细分行业</span>，并找出每个行业<span>前三龙头个股</span>的利好/利空关系与具体理由。</div>
+    <textarea class="event-textarea" id="event-input" placeholder="例如：美国对中国芯片出口实施新一轮管制，限制先进制程设备和EDA软件出口&#10;例如：国家发改委宣布上调天然气基准门站价格10%&#10;例如：特斯拉在中国发布超低价版Model Y，售价下探至14万元"></textarea>
+    <div class="event-actions">
+      <button class="btn-analyze" id="btn-analyze" onclick="analyzeEvent()">
+        <span id="btn-analyze-text">✦ 开始分析</span>
+      </button>
+      <div class="event-examples">
+        <span class="ex-chip" onclick="fillExample(this)">芯片出口管制升级</span>
+        <span class="ex-chip" onclick="fillExample(this)">光伏装机补贴大幅削减</span>
+        <span class="ex-chip" onclick="fillExample(this)">美联储超预期降息50bp</span>
+        <span class="ex-chip" onclick="fillExample(this)">中国稀土出口配额收紧</span>
+        <span class="ex-chip" onclick="fillExample(this)">新能源车以旧换新政策</span>
+        <span class="ex-chip" onclick="fillExample(this)">俄乌停火谈判取得突破</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="event-progress" id="event-progress">
+    <div class="ep-title"><span style="animation:pulse 1s ease infinite">⏳</span> AI 正在分析事件影响链…</div>
+    <div class="ep-steps" id="ep-steps"></div>
+  </div>
+
+  <!-- Result -->
+  <div class="event-result" id="event-result"></div>
+
+  <!-- History -->
+  <div class="event-history" id="event-history" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div class="eh-title">历史分析记录</div>
+      <button class="btn-clear-history" onclick="clearEventHistory()">清空记录</button>
+    </div>
+    <div class="eh-list" id="eh-list"></div>
+  </div>
+
+</div>
 </div>
 </div>
 
@@ -1434,6 +1660,232 @@ function startQuoteRefresh() {
 }
 
 
+/* ══════════════════════════════════════
+   EVENT ANALYSIS ENGINE
+══════════════════════════════════════ */
+let curMode = 'price';
+let eventHistory = [];
+let isAnalyzing = false;
+
+const EXAMPLE_EVENTS = {
+  '芯片出口管制升级': '美国商务部宣布对中国AI芯片及半导体制造设备实施新一轮出口管制，限制范围扩大至10nm以下先进制程设备和EDA软件，相关许可证申请将被推定拒绝。',
+  '光伏装机补贴大幅削减': '财政部发布通知，2025年起新增集中式光伏电站补贴标准下调40%，分布式光伏补贴退坡至0.05元/度，部分省份已暂停受理新增并网申请。',
+  '美联储超预期降息50bp': '美联储FOMC会议宣布一次性降息50个基点，超出市场普遍预期的25bp，主席鲍威尔暗示后续仍有降息空间，全球资本市场大幅波动。',
+  '中国稀土出口配额收紧': '商务部公告将2025年第一批稀土出口配额削减25%，并将镝、铽等重稀土列入出口许可证管理目录，生效时间为即日起。',
+  '新能源车以旧换新政策': '国家发改委、财政部联合发布新能源汽车以旧换新补贴方案，购置新能源乘用车最高补贴2万元，补贴资金总额500亿元，刺激汽车消费。',
+  '俄乌停火谈判取得突破': '在美国斡旋下，俄乌双方签署临时停火协议，欧洲能源价格大幅回落，铝、钢铁等大宗商品供应预期改善，重建相关物资需求受到关注。',
+};
+
+function switchMode(mode) {
+  curMode = mode;
+  document.getElementById('tab-price').classList.toggle('active', mode==='price');
+  document.getElementById('tab-event').classList.toggle('active', mode==='event');
+  const mc = document.getElementById('main-content');
+  const ep = document.getElementById('event-panel');
+  const sb = document.querySelector('.sidebar');
+  if (mode==='price') {
+    mc.style.display='block'; ep.style.display='none'; sb.style.display='flex';
+  } else {
+    mc.style.display='none'; ep.style.display='block'; sb.style.display='none';
+    renderEventHistory();
+  }
+}
+
+function fillExample(el) {
+  const key = el.textContent.trim();
+  document.getElementById('event-input').value = EXAMPLE_EVENTS[key] || key;
+  document.getElementById('event-input').focus();
+}
+
+const STEPS = [
+  {id:'s1',label:'解析事件类型与关键要素'},
+  {id:'s2',label:'识别受影响产业链层次'},
+  {id:'s3',label:'分析各细分行业利好/利空'},
+  {id:'s4',label:'匹配A股龙头个股并撰写理由'},
+  {id:'s5',label:'生成影响图谱'},
+];
+
+function showProgress() {
+  const box = document.getElementById('event-progress');
+  const steps = document.getElementById('ep-steps');
+  box.classList.add('visible');
+  steps.innerHTML = STEPS.map(s=>
+    `<div class="ep-step" id="${s.id}"><div class="ep-icon">-</div><span>${s.label}</span></div>`).join('');
+}
+function setStep(idx, state) {
+  const el = document.getElementById(STEPS[idx]?.id);
+  if (!el) return;
+  el.className=`ep-step ${state}`;
+  el.querySelector('.ep-icon').textContent = state==='done'?'✓':'…';
+}
+function hideProgress() { document.getElementById('event-progress').classList.remove('visible'); }
+
+async function analyzeEvent() {
+  const eventText = document.getElementById('event-input').value.trim();
+  if (!eventText || isAnalyzing) return;
+  isAnalyzing = true;
+  const btn = document.getElementById('btn-analyze');
+  const btnTxt = document.getElementById('btn-analyze-text');
+  btn.disabled=true; btn.classList.add('running'); btnTxt.textContent='分析中…';
+  document.getElementById('event-result').classList.remove('visible');
+  document.getElementById('event-result').innerHTML='';
+  showProgress(); setStep(0,'active');
+
+  const prompt = `你是A股产业链投资研究员。分析以下重大事件对A股产业链的影响。
+
+事件：${eventText}
+
+输出严格JSON（无其他文字）：
+{"eventName":"事件简称10字内","eventIcon":"emoji","eventType":"policy|macro|industry|geopolitics|tech","summary":"事件背景与核心影响逻辑3句话","duration":"短期|中期|长期","magnitude":"重大|显著|一般","bullCount":数字,"bearCount":数字,"chainImpact":[{"layer":"传导层次名","direction":"bullish|bearish|mixed","items":["要点1","要点2"]}],"sectors":[{"name":"细分行业名","icon":"emoji","direction":"bullish|bearish|mixed","badge":"强烈利好|利好|中性偏好|中性偏空|利空|强烈利空","logic":"该行业受影响核心逻辑2-3句包含传导路径","stocks":[{"rank":1,"code":"6位A股代码","name":"公司名","direction":"bullish|bearish|neutral","impact":"强烈利好|利好|中性|利空|强烈利空","reason":"该公司具体受影响理由2-3句点明业务关联和营收占比"}]}]}
+
+要求：sectors列4-7个细分行业每个行业给3只龙头A股，代码必须真实，理由要具体含数据，只输出JSON。`;
+
+  try {
+    setStep(0,'done'); setStep(1,'active'); await new Promise(r=>setTimeout(r,400));
+    setStep(1,'done'); setStep(2,'active');
+    const raw = await callAI([{role:'user',content:prompt}], 3000);
+    setStep(2,'done'); setStep(3,'active'); await new Promise(r=>setTimeout(r,300));
+    const data = parseJSON(raw);
+    setStep(3,'done'); setStep(4,'active'); await new Promise(r=>setTimeout(r,200));
+    setStep(4,'done'); await new Promise(r=>setTimeout(r,350));
+    hideProgress();
+
+    const entry = {id:Date.now(), eventText, data, date:new Date().toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})};
+    eventHistory.unshift(entry);
+    if (eventHistory.length>20) eventHistory.pop();
+    try { await window.storage.set('event-history', JSON.stringify(eventHistory)); } catch{}
+
+    renderEventResult(data);
+    renderEventHistory();
+  } catch(err) {
+    hideProgress();
+    const res = document.getElementById('event-result');
+    res.classList.add('visible');
+    res.innerHTML=`<div style="background:rgba(255,77,79,0.07);border:1px solid rgba(255,77,79,0.2);border-radius:9px;padding:16px 18px;color:var(--up);font-size:12px;">✗ 分析失败：${err.message}<br><span style="color:var(--muted);font-size:10px;margin-top:4px;display:block">请重试</span></div>`;
+  }
+  isAnalyzing=false; btn.disabled=false; btn.classList.remove('running'); btnTxt.textContent='✦ 重新分析';
+}
+
+function renderEventResult(data) {
+  const el = document.getElementById('event-result');
+  el.classList.add('visible');
+  const typeLabels={policy:'政策',macro:'宏观',industry:'行业',geopolitics:'地缘',tech:'科技'};
+
+  const chainHTML = (data.chainImpact||[]).map((node,i)=>`
+    ${i>0?'<div class="ec-arrow">→</div>':''}
+    <div class="ec-node ${node.direction}">
+      <div class="ec-node-title">${node.layer}</div>
+      ${(node.items||[]).map(item=>`<div class="ec-item">${item}</div>`).join('')}
+    </div>`).join('');
+
+  const sectorsHTML = (data.sectors||[]).map(sec=>{
+    const dirIcon = sec.direction==='bullish'?'🟢':sec.direction==='bearish'?'🔴':'🟡';
+    const stocksHTML = (sec.stocks||[]).slice(0,3).map(st=>{
+      const impCls = st.direction==='bullish'?(st.impact?.includes('强烈')?'strong-bull':'bull'):st.direction==='bearish'?(st.impact?.includes('强烈')?'strong-bear':'bear'):'neutral';
+      return `<div class="stock-card ${st.direction}">
+        <div class="stock-card-top">
+          <div class="sc-rank">${st.rank}</div>
+          <div class="sc-code">${st.code}</div>
+          <div class="sc-name">${st.name}</div>
+          <div class="sc-impact-badge ${impCls}">${st.impact||'--'}</div>
+          <div class="sc-quote loading" id="eq-${st.code}">…</div>
+        </div>
+        <div class="sc-reason ${st.direction}">${st.reason}</div>
+      </div>`;
+    }).join('');
+    return `<div class="sector-card ${sec.direction} fu">
+      <div class="sector-hd">
+        <span class="sector-icon">${sec.icon||'📊'}</span>
+        <span class="sector-name">${sec.name}</span>
+        <span class="sector-badge ${sec.direction}">${sec.badge}</span>
+        <span class="sector-dir">${dirIcon}</span>
+      </div>
+      <div class="sector-body">
+        <div class="sector-logic">${sec.logic}</div>
+        <div class="stock-cards">${stocksHTML}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="event-header-card fu">
+      <div class="event-title-row">
+        <div class="event-icon-big">${data.eventIcon||'⚡'}</div>
+        <div class="event-meta">
+          <div class="event-name">${data.eventName||'事件分析'}</div>
+          <span class="event-type-badge ${data.eventType}">${typeLabels[data.eventType]||'事件'}</span>
+          <span style="font-size:10px;color:var(--muted)">${data.duration||'--'} · ${data.magnitude||'--'}影响</span>
+        </div>
+      </div>
+      <div class="event-summary">${data.summary||''}</div>
+      <div style="margin-top:14px;">
+        <div class="event-stats-row">
+          <div class="event-stat"><div class="event-stat-label">受益行业</div><div class="event-stat-value dn">${data.bullCount||0} 个</div></div>
+          <div class="event-stat"><div class="event-stat-label">受损行业</div><div class="event-stat-value up">${data.bearCount||0} 个</div></div>
+          <div class="event-stat"><div class="event-stat-label">分析股票</div><div class="event-stat-value mix">${(data.sectors||[]).reduce((a,s)=>a+(s.stocks?.length||0),0)} 只</div></div>
+          <div class="event-stat"><div class="event-stat-label">影响时效</div><div class="event-stat-value" style="color:var(--blue)">${data.duration||'--'}</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="sec-label fu">事件传导链</div>
+    <div class="event-chain fu">${chainHTML}</div>
+    <div class="sec-label fu">细分行业影响 · 龙头个股分析</div>
+    <div class="sector-grid">${sectorsHTML}</div>
+    <div class="footer-note">⚠️ 以上分析由 Claude AI 生成，仅供研究参考，不构成投资建议。</div>`;
+
+  // Live quotes for event stocks
+  const codes = (data.sectors||[]).flatMap(s=>(s.stocks||[]).map(st=>st.code)).filter(Boolean);
+  if (codes.length) {
+    fetchQuotes(codes).then(()=>{
+      codes.forEach(code=>{
+        const q=QUOTE_CACHE[code];
+        const qEl=document.getElementById('eq-'+code);
+        if (!qEl) return;
+        if (!q||q.status==='err'){qEl.className='sc-quote flat';qEl.textContent='--';return;}
+        const cls=q.pct>0?'up':q.pct<0?'dn':'flat';
+        qEl.className=`sc-quote ${cls}`;
+        qEl.textContent=`${fmtPrice(q.price)} ${fmtPct(q.pct)}`;
+      });
+    });
+  }
+  el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function renderEventHistory() {
+  const box=document.getElementById('event-history');
+  const list=document.getElementById('eh-list');
+  if (!eventHistory.length){box.style.display='none';return;}
+  box.style.display='block';
+  list.innerHTML=eventHistory.map(e=>`
+    <div class="eh-item" onclick="replayEvent(${e.id})">
+      <span class="eh-item-icon">${e.data?.eventIcon||'⚡'}</span>
+      <span class="eh-item-name">${e.data?.eventName||e.eventText.slice(0,20)}</span>
+      <span class="eh-item-stats"><span class="eh-bull">↑${e.data?.bullCount||0}</span> <span class="eh-bear">↓${e.data?.bearCount||0}</span></span>
+      <span class="eh-item-date">${e.date}</span>
+    </div>`).join('');
+}
+
+function replayEvent(id) {
+  const e=eventHistory.find(x=>x.id===id);
+  if (!e) return;
+  document.getElementById('event-input').value=e.eventText;
+  document.getElementById('event-result').innerHTML='';
+  renderEventResult(e.data);
+}
+
+async function clearEventHistory() {
+  eventHistory=[];
+  try{await window.storage.delete('event-history');}catch{}
+  renderEventHistory();
+}
+
+async function loadEventHistory() {
+  try {
+    const r=await window.storage.get('event-history');
+    if (r){eventHistory=JSON.parse(r.value)||[];renderEventHistory();}
+  } catch{}
+}
+
 function scheduleDailyUpdate() {
   const now = new Date();
   const next = new Date(now);
@@ -1475,7 +1927,8 @@ async function init() {
 
   renderAll();
   scheduleDailyUpdate();
-  startQuoteRefresh(); // start live quote auto-refresh
+  startQuoteRefresh();
+  loadEventHistory();
 }
 
 init();
