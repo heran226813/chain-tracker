@@ -139,6 +139,7 @@ header{padding:0 28px;height:58px;display:flex;align-items:center;justify-conten
 .ptag{font-size:9px;padding:2px 8px;border-radius:20px;font-weight:600;letter-spacing:0.07em;}
 .ptag.energy{background:rgba(56,189,248,0.09);color:var(--blue);border:1px solid rgba(56,189,248,0.18);}
 .ptag.chemical{background:rgba(240,180,41,0.08);color:var(--gold);border:1px solid rgba(240,180,41,0.16);}
+.ptag.strategic{background:rgba(167,139,250,0.09);color:var(--purple);border:1px solid rgba(167,139,250,0.2);}
 .product-desc{font-size:11px;color:var(--txt2);line-height:1.75;max-width:560px;}
 .price-panel{background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:13px 20px;min-width:210px;text-align:right;}
 .price-label{font-size:9px;color:var(--muted);letter-spacing:0.07em;margin-bottom:3px;}
@@ -343,6 +344,12 @@ header{padding:0 28px;height:58px;display:flex;align-items:center;justify-conten
       <div class="cchg dn">-11.4%</div>
       <div class="ai-dot" id="dot-lithium" title="数据状态"></div>
     </div>
+    <div class="citem" id="item-tungsten" onclick="selectCommodity('tungsten',this)">
+      <div class="cicon">⚙️</div>
+      <div class="cinfo"><div class="cname">钨</div><div class="cen">Tungsten / APT</div></div>
+      <div class="cchg up">+8.4%</div>
+      <div class="ai-dot" id="dot-tungsten" title="数据状态"></div>
+    </div>
     <hr class="csep">
     <div class="sidebar-title">即将上线</div>
     <div class="citem disabled"><div class="cicon">⚡</div><div class="cinfo"><div class="cname">电解铝</div><div class="cen">Electrolytic Aluminum</div></div><div class="cchg up">+4.1%</div></div>
@@ -449,6 +456,131 @@ const BASE = {
   }
 };
 
+/* ── 钨（Tungsten）产业链数据 ── */
+BASE['tungsten'] = {
+  title:'⚙️ 钨（W）产业链影响图谱',
+  tag:{text:'战略小金属',cls:'strategic'},
+  desc:'钨是不可替代的战略金属，熔点最高（3422°C），中国占全球储量约60%、产量约80%。核心品种：钨精矿→APT（仲钨酸铵）→钨粉/碳化钨→硬质合金/钨丝/钨特钢。供给受政策管控（开采总量控制+出口管制），价格受资源政策、军工需求、光伏钨丝等新兴需求驱动。',
+  priceLabel:'APT（仲钨酸铵）参考价',
+  priceUnit:'万元/吨',
+  spark:[62,65,68,72,78,85,90,95,100,96,100],
+  chain:{
+    upstream:[
+      {name:'⛏️ 黑/白钨精矿（65%WO₃）',note:'原料端，65度黑钨精矿约18.5万/吨，国家管控开采总量',h:true},
+      {name:'🏔️ 钨矿山资源',note:'江西、湖南、广东为主产区，国家严控许可证',h:true},
+      {name:'♻️ 钨废料回收',note:'再生钨占比约20%，成本低，战略缓冲作用',h:false},
+    ],
+    midstream:[
+      {name:'🧪 APT（仲钨酸铵）',note:'本品核心，约27.2万/吨，冶炼环节关键产品',h:true},
+      {name:'🔘 钨粉 / 碳化钨粉',note:'APT下游，约405元/公斤，深加工原料',h:true},
+      {name:'🔵 蓝钨 / 氧化钨',note:'冶炼中间体，部分出口',h:false},
+    ],
+    downstream:[
+      {name:'🔩 硬质合金',note:'最大下游（59%），切削刀具、矿山钻头、模具',h:false},
+      {name:'🪡 钨丝（光伏/灯丝）',note:'光伏细线锯+LED，增速最快，占比约23%',h:false},
+      {name:'⚙️ 钨特钢',note:'高速钢、模具钢，机械制造（占比15%）',h:false},
+      {name:'🛡️ 军工/航空航天',note:'穿甲弹、导弹配重、核聚变材料（高增长）',h:false},
+      {name:'🔬 钨化工/其他',note:'钨酸钠、触媒等（占比4%）',h:false},
+    ],
+  },
+  rise:{
+    priceVal:'27.2', priceChg:'▲ +8.4%', totalStocks:16, highImpact:7,
+    sparkCols:['rgba(240,180,41,0.22)','rgba(240,180,41,0.25)','rgba(240,180,41,0.28)','rgba(240,180,41,0.32)','rgba(240,180,41,0.38)','rgba(240,180,41,0.45)','rgba(240,180,41,0.52)','rgba(240,180,41,0.6)','#ff4d4f','rgba(240,180,41,0.55)','#f0b429'],
+    cards:[
+      {industry:'钨矿/APT生产商（核心受益）',badge:'positive',badgeText:'直接受益',icon:'⛏️',dir:'🟢',mag:'high',conf:'high',
+       logic:'APT价格上涨直接拉升钨矿山和冶炼企业营收。拥有自有矿山的一体化企业（资源自给率高）利润弹性最大，量价齐升；纯加工型企业因原料成本同步上行，弹性相对弱，但整体受益。',lc:'positive',
+       stocks:[
+         {code:'000657',name:'中钨高新',note:'五矿旗下，硬质合金全球第一+钨矿资源，弹性最大',impact:'↑ 强正面',cls:'dn'},
+         {code:'600549',name:'厦门钨业',note:'全产业链龙头，APT产能全球领先，矿山+冶炼+深加工',impact:'↑ 强正面',cls:'dn'},
+         {code:'002378',name:'章源钨业',note:'钨精矿资源TOP3，自给率>60%，纯资源弹性标的',impact:'↑ 强正面',cls:'dn'},
+         {code:'603308',name:'翔鹭钨业',note:'钨粉/硬质合金，供应链紧张受益定价权提升',impact:'↑ 正面',cls:'dn'},
+         {code:'601899',name:'洛阳钼业',note:'全球第二大钨生产商，2025年产量约1.2万吨',impact:'↑ 正面',cls:'dn'},
+       ]},
+      {industry:'硬质合金（成本承压+提价传导）',badge:'mixed',badgeText:'分化影响',icon:'🔩',dir:'🟡',mag:'high',conf:'high',
+       logic:'硬质合金企业原料（钨粉/碳化钨）成本随APT上涨，但行业龙头具备较强提价能力，可向下游机械、汽车制造商转嫁。自产钨原料比例高的企业实为受益，纯加工型毛利承压。',lc:'mixed',
+       stocks:[
+         {code:'000657',name:'中钨高新',note:'自产原料+硬质合金一体化，成本可控受益',impact:'↑ 正面',cls:'dn'},
+         {code:'002906',name:'欧科亿',note:'数控刀片龙头，外购碳化钨，成本小幅承压',impact:'↓ 中性偏负',cls:'up'},
+         {code:'300557',name:'贝斯特',note:'精密零部件，钨材用量少，影响有限',impact:'→ 中性',cls:'neutral'},
+       ]},
+      {industry:'光伏钨丝（成本承压）',badge:'negative',badgeText:'成本压力',icon:'🪡',dir:'🔴',mag:'high',conf:'high',
+       logic:'光伏细线锯钨丝是当前增速最快的钨下游，原料占成本约30-35%。钨价上涨直接压缩钨丝企业毛利，而光伏组件价格竞争激烈，向下游转嫁能力有限，毛利率承压明显。',lc:'negative',
+       stocks:[
+         {code:'603308',name:'翔鹭钨业',note:'钨丝主要产商，原料自给率偏低，成本敏感',impact:'↓ 负面',cls:'up'},
+         {code:'600549',name:'厦门钨业',note:'钨丝业务扩张中，涨价初期成本承压',impact:'↓ 中性偏负',cls:'up'},
+         {code:'300274',name:'阳光电源',note:'光伏设备商，钨丝成本上升影响辅材成本',impact:'→ 中性',cls:'neutral'},
+       ]},
+      {industry:'军工/航空航天配套',badge:'positive',badgeText:'景气受益',icon:'🛡️',dir:'🟢',mag:'med',conf:'med',
+       logic:'军工对钨的需求（穿甲弹芯、导弹配重、核聚变装置）持续高增，且军工采购具有价格不敏感特性——钨价上涨反而推高军工钨制品的价值，相关上市公司估值受益于稀缺性溢价。',lc:'positive',
+       stocks:[
+         {code:'000547',name:'航天发展',note:'导弹配套，钨合金用量大，价值量提升',impact:'↑ 正面',cls:'dn'},
+         {code:'600862',name:'中航高科',note:'航空航天材料，高端钨材需求增加',impact:'↑ 中性偏正',cls:'dn'},
+         {code:'002019',name:'亿帆医药',note:'无直接关联',impact:'→ 无影响',cls:'neutral'},
+       ]},
+      {industry:'机械制造/金属切削',badge:'negative',badgeText:'成本承压',icon:'⚙️',dir:'🔴',mag:'med',conf:'med',
+       logic:'机械制造业大量使用硬质合金刀具，钨价上涨通过硬质合金价格传导至刀具成本，采购成本上升。传导链较长（钨→碳化钨→硬质合金→刀具→机加工），影响相对滞后且幅度有限。',lc:'negative',
+       stocks:[
+         {code:'002249',name:'大洋电机',note:'刀具用量可观，成本小幅上升',impact:'↓ 中性偏负',cls:'up'},
+         {code:'300030',name:'阳普医疗',note:'精密加工需求，刀具成本微升',impact:'→ 微弱',cls:'neutral'},
+         {code:'002558',name:'世名科技',note:'无直接关联',impact:'→ 无影响',cls:'neutral'},
+       ]},
+      {industry:'钨特钢/高速钢',badge:'mixed',badgeText:'分化影响',icon:'🔧',dir:'🟡',mag:'med',conf:'med',
+       logic:'钨特钢（高速钢、模具钢）生产商原料成本上升，但钨价上涨通常伴随下游制造业景气，需求同步提升，具备提价能力的龙头企业可维持毛利率，行业整体分化。',lc:'mixed',
+       stocks:[
+         {code:'600516',name:'方大特钢',note:'特钢企业，钨特钢成本上升',impact:'↓ 中性偏负',cls:'up'},
+         {code:'002756',name:'永兴材料',note:'特种不锈钢，钨用量少，影响弱',impact:'→ 中性',cls:'neutral'},
+       ]},
+    ]
+  },
+  fall:{
+    priceVal:'22.5', priceChg:'▼ -9.2%', totalStocks:16, highImpact:7,
+    sparkCols:['rgba(255,77,79,0.22)','rgba(255,77,79,0.28)','rgba(255,77,79,0.34)','rgba(255,77,79,0.4)','rgba(255,77,79,0.46)','rgba(255,77,79,0.52)','rgba(255,77,79,0.45)','rgba(255,77,79,0.38)','rgba(255,77,79,0.3)','rgba(255,77,79,0.22)','#00b578'],
+    cards:[
+      {industry:'钨矿/APT生产商（直接承压）',badge:'negative',badgeText:'价格承压',icon:'⛏️',dir:'🔴',mag:'high',conf:'high',
+       logic:'APT价格下跌直接压缩钨矿山和冶炼企业的营收和利润。高成本矿山（55度以下品位）面临亏损压力，行业可能出现减产保价行为。资源自给率高的企业弹性反向放大，估值中枢下移。',lc:'negative',
+       stocks:[
+         {code:'000657',name:'中钨高新',note:'核心业务受损，利润弹性反向收缩',impact:'↓ 负面',cls:'up'},
+         {code:'600549',name:'厦门钨业',note:'钨钼业务利润受损，但新能源材料业务对冲',impact:'↓ 中性偏负',cls:'up'},
+         {code:'002378',name:'章源钨业',note:'纯资源标的，跌价业绩弹性反向最大',impact:'↓ 负面',cls:'up'},
+         {code:'603308',name:'翔鹭钨业',note:'原料跌价，加工利润略有改善但整体承压',impact:'↓ 中性偏负',cls:'up'},
+         {code:'601899',name:'洛阳钼业',note:'钨矿业务利润贡献下降',impact:'↓ 中性偏负',cls:'up'},
+       ]},
+      {industry:'硬质合金（成本改善）',badge:'positive',badgeText:'成本下降',icon:'🔩',dir:'🟢',mag:'high',conf:'high',
+       logic:'硬质合金原料成本（碳化钨粉）随APT下跌，在产品售价相对稳定情况下，加工型企业毛利率明显改善。刀具行业竞争激烈，部分降价空间可让利给机械制造客户以获取更大订单量。',lc:'positive',
+       stocks:[
+         {code:'002906',name:'欧科亿',note:'外购原料为主，碳化钨成本大幅下降，盈利改善',impact:'↑ 强正面',cls:'dn'},
+         {code:'000657',name:'中钨高新',note:'下游硬质合金成本改善，但矿端损失',impact:'→ 中性',cls:'neutral'},
+         {code:'300557',name:'贝斯特',note:'精密制造成本微降，刀具采购成本下降',impact:'↑ 微弱',cls:'dn'},
+       ]},
+      {industry:'光伏钨丝（成本改善）',badge:'positive',badgeText:'成本下降',icon:'🪡',dir:'🟢',mag:'high',conf:'high',
+       logic:'原料成本下降显著改善光伏钨丝企业盈利，在光伏行业竞争激烈时，成本降低可增强价格竞争力，有助于提升市场份额和出货量，量利双升逻辑顺畅。',lc:'positive',
+       stocks:[
+         {code:'603308',name:'翔鹭钨业',note:'钨丝原料成本下降，盈利修复明显',impact:'↑ 正面',cls:'dn'},
+         {code:'600549',name:'厦门钨业',note:'钨丝业务成本改善，有助于扩大产能利用率',impact:'↑ 中性偏正',cls:'dn'},
+         {code:'300274',name:'阳光电源',note:'光伏辅材成本小幅下降，正面但有限',impact:'↑ 微弱',cls:'dn'},
+       ]},
+      {industry:'军工/航空航天配套',badge:'negative',badgeText:'价值缩水',icon:'🛡️',dir:'🟡',mag:'med',conf:'low',
+       logic:'军工对钨需求稳定，跌价对需求本身影响极小，但市场可能担忧钨战略价值下降，相关个股稀缺性溢价收窄。整体影响有限，军工需求景气度决定股价的权重更大。',lc:'mixed',
+       stocks:[
+         {code:'000547',name:'航天发展',note:'军工需求稳定，钨价跌价影响极微',impact:'→ 中性',cls:'neutral'},
+         {code:'600862',name:'中航高科',note:'航空材料需求不变，影响可忽略',impact:'→ 无影响',cls:'neutral'},
+       ]},
+      {industry:'机械制造/金属切削',badge:'positive',badgeText:'成本下降',icon:'⚙️',dir:'🟢',mag:'med',conf:'med',
+       logic:'刀具采购成本下降，机械制造企业生产成本小幅改善。传导链较长，实际影响需3-6个月逐步体现，但对精密制造密集型企业有实质性利好。',lc:'positive',
+       stocks:[
+         {code:'002249',name:'大洋电机',note:'刀具采购成本下降，生产成本小幅改善',impact:'↑ 微弱',cls:'dn'},
+         {code:'300030',name:'阳普医疗',note:'精密加工成本微降',impact:'→ 微弱',cls:'neutral'},
+       ]},
+      {industry:'钨特钢/高速钢',badge:'positive',badgeText:'成本下降',icon:'🔧',dir:'🟢',mag:'med',conf:'med',
+       logic:'钨特钢生产原料成本下降，对于外购钨原料比例高的特钢企业，毛利率有所改善。若下游制造业景气同步，则量利双升；若需求同步走弱（往往是钨价跌价背景），则对冲有限。',lc:'positive',
+       stocks:[
+         {code:'600516',name:'方大特钢',note:'原料成本下降，毛利率有所修复',impact:'↑ 中性偏正',cls:'dn'},
+         {code:'002756',name:'永兴材料',note:'钨用量少，影响弱',impact:'→ 中性',cls:'neutral'},
+       ]},
+    ]
+  }
+};
+
 /* ══════════════════════════════════════
    STATE & STORAGE
 ══════════════════════════════════════ */
@@ -464,12 +596,13 @@ const STORAGE_KEYS = {
 };
 
 // In-memory history & metadata (backed by storage when available)
-const HISTORY = { 'caustic-soda': [], 'lithium': [] };
+const HISTORY = { 'caustic-soda': [], 'lithium': [], 'tungsten': [] };
 const META = {
   'caustic-soda': { lastFetch: null, status: 'base', sources: [] },
   'lithium':       { lastFetch: null, status: 'base', sources: [] },
+  'tungsten':      { lastFetch: null, status: 'base', sources: [] },
 };
-let historyIdx = { 'caustic-soda': 0, 'lithium': 0 };
+let historyIdx = { 'caustic-soda': 0, 'lithium': 0, 'tungsten': 0 };
 let isUpdating = false;
 
 /* ══════════════════════════════════════
@@ -1309,7 +1442,7 @@ function scheduleDailyUpdate() {
   const msUntil = next - now;
   setTimeout(async () => {
     appendLog('🕕 每日定时更新触发！', 'ai');
-    for (const com of ['caustic-soda', 'lithium']) {
+    for (const com of ['caustic-soda', 'lithium', 'tungsten']) {
       await runAIUpdate(com);
       await new Promise(r => setTimeout(r, 3000));
     }
@@ -1325,13 +1458,14 @@ async function init() {
   // Load persisted data
   await loadFromStorage('caustic-soda');
   await loadFromStorage('lithium');
+  await loadFromStorage('tungsten');
 
   // Clock
   updateClock();
   setInterval(updateClock, 15000);
 
   // Check staleness (>23h since last update = stale)
-  for (const com of ['caustic-soda', 'lithium']) {
+  for (const com of ['caustic-soda', 'lithium', 'tungsten']) {
     if (META[com].lastFetch) {
       const age = Date.now() - new Date(META[com].lastFetch).getTime();
       if (age > 23 * 3600 * 1000) META[com].status = 'stale';
