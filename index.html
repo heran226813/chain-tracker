@@ -242,6 +242,58 @@ header{padding:0 28px;height:58px;display:flex;align-items:center;justify-conten
 .delta-tag.up{background:rgba(255,77,79,0.13);color:var(--up);}
 .delta-tag.dn{background:rgba(0,181,120,0.1);color:var(--dn);}
 
+/* ── Real-time quote styles ── */
+.srow{position:relative;}
+.squote{display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;min-width:72px;}
+.squote-price{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;line-height:1.2;}
+.squote-chg{font-family:'JetBrains Mono',monospace;font-size:9px;line-height:1.2;}
+.squote-price.up{color:var(--up);}
+.squote-price.dn{color:var(--dn);}
+.squote-price.flat{color:var(--neu);}
+.squote-chg.up{color:var(--up);}
+.squote-chg.dn{color:var(--dn);}
+.squote-chg.flat{color:var(--neu);}
+.squote-loading{font-size:8px;color:var(--muted);font-family:'JetBrains Mono',monospace;animation:pulse 1.2s ease infinite;}
+.squote-err{font-size:8px;color:var(--muted);}
+
+/* quote bar across top of card */
+.quote-bar{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 13px;border-bottom:1px solid var(--border);
+  background:rgba(0,0,0,0.15);font-size:9px;color:var(--muted);
+  flex-wrap:wrap;
+}
+.qb-item{display:flex;align-items:center;gap:4px;cursor:pointer;}
+.qb-item:hover .qb-name{color:var(--blue);}
+.qb-name{color:var(--txt2);font-size:9px;}
+.qb-price{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;}
+.qb-pct{font-family:'JetBrains Mono',monospace;font-size:8px;}
+.qb-price.up,.qb-pct.up{color:var(--up);}
+.qb-price.dn,.qb-pct.dn{color:var(--dn);}
+.qb-price.flat,.qb-pct.flat{color:var(--neu);}
+.qb-sep{color:var(--border);}
+.qb-loading{animation:pulse 1s ease infinite;color:var(--muted);}
+
+/* live indicator */
+.live-dot{width:5px;height:5px;border-radius:50%;background:var(--teal);display:inline-block;margin-right:3px;animation:blink2 2s ease infinite;}
+
+/* quote refresh strip */
+.quote-strip{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:6px 13px;background:rgba(45,212,191,0.03);
+  border-bottom:1px solid var(--border);font-size:9px;
+}
+.qs-left{display:flex;align-items:center;gap:6px;color:var(--muted);}
+.qs-time{font-family:'JetBrains Mono',monospace;color:var(--teal);}
+.btn-refresh{
+  padding:2px 8px;border-radius:4px;font-size:9px;font-weight:600;
+  cursor:pointer;border:1px solid rgba(45,212,191,0.3);
+  background:rgba(45,212,191,0.07);color:var(--teal);
+  font-family:'Noto Sans SC',sans-serif;transition:all 0.15s;
+}
+.btn-refresh:hover{background:rgba(45,212,191,0.14);}
+.btn-refresh:disabled{opacity:0.4;cursor:not-allowed;}
+
 .footer-note{font-size:9px;color:var(--muted);text-align:center;padding:14px 0 8px;border-top:1px solid var(--border);margin-top:20px;line-height:1.9;}
 
 /* ── Animations ── */
@@ -877,6 +929,17 @@ function renderAll() {
       </div>
     </div>
 
+    <div class="quote-strip fu" id="quote-strip">
+      <div class="qs-left">
+        <span class="live-dot"></span>
+        <span>A股实时行情</span>
+        <span class="qs-time">--:--:--</span>
+        <span style="color:var(--border)">|</span>
+        <span>${isMarketOpen() ? '交易中' : '已收盘（数据为收盘价）'}</span>
+      </div>
+      <button class="btn-refresh" id="btn-refresh-quote" onclick="refreshQuotes()">刷新行情</button>
+    </div>
+
     <div class="scenario-row fu">
       <span class="sc-lbl">模拟情景：</span>
       <button class="sc-btn rise${curSc==='rise'?' active':''}" onclick="switchSc('rise')">🔺 价格上涨</button>
@@ -944,8 +1007,13 @@ function renderAll() {
         <div class="scode">${st.code}</div>
         <div class="sname">${st.name}${st._delta?`<span class="delta-tag ${st._delta}">${st._delta==='up'?'↑升':'↓降'}</span>`:''}</div>
         <div class="snote">${st.note}</div>
-        <div class="simpact ${st.cls}">${st.impact}</div>
+        <div class="squote" id="q-${st.code}"><span class="squote-loading">…</span></div>
       </div>`).join('');
+
+    // Quote bar — show all stock codes for this card
+    const cardCodes = (card.stocks||[]).map(s=>s.code).filter(Boolean).join(',');
+    const qbar = cardCodes ? `<div class="quote-bar qb-loading" data-qbar="${cardCodes}">
+      <span class="live-dot"></span>行情加载中…</div>` : '';
 
     el.innerHTML = `
       <div class="icard-hd">
@@ -955,6 +1023,7 @@ function renderAll() {
         <span class="confbadge ${card.conf}">${cl}</span>
         <span class="idir">${card.dir}</span>
       </div>
+      ${qbar}
       <div class="icard-body">
         ${aiBox}
         <div class="ilogic ${card.lc}">${card.logic}</div>
@@ -962,6 +1031,12 @@ function renderAll() {
       </div>`;
     grid.appendChild(el);
   });
+
+  // Fetch live quotes for all visible stocks (non-blocking)
+  const codesToFetch = getAllCodes();
+  if (codesToFetch.length > 0) {
+    fetchQuotes(codesToFetch);
+  }
 }
 
 /* ══════════════════════════════════════
@@ -999,8 +1074,218 @@ function switchSc(s) {
 }
 
 /* ══════════════════════════════════════
-   AUTO-UPDATE SCHEDULER
+   REAL-TIME QUOTE ENGINE
+   Source: Sina Finance (免费, 无需key, 支持A股)
+   Fallback: Eastmoney (东方财富)
+   Auto-refresh: every 60s during market hours
 ══════════════════════════════════════ */
+
+// Quote cache: { '600000': { price, chg, pct, time, status } }
+const QUOTE_CACHE = {};
+let quoteRefreshTimer = null;
+let lastQuoteTime = null;
+
+// Collect all stock codes visible in current view
+function getAllCodes() {
+  const codes = new Set();
+  const c = WORKING[curCom];
+  ['rise','fall'].forEach(sc => {
+    (c[sc].cards || []).forEach(card => {
+      (card.stocks || []).forEach(st => { if(st.code) codes.add(st.code); });
+    });
+  });
+  return [...codes];
+}
+
+// Determine exchange prefix for Sina API
+function sinaCode(code) {
+  const n = parseInt(code);
+  // SH: 6xxxxx; SZ: 0xxxxx 3xxxxx; BJ: 4xxxxx 8xxxxx
+  if (code.startsWith('6')) return 'sh' + code;
+  if (code.startsWith('4') || code.startsWith('8')) return 'bj' + code;
+  return 'sz' + code;
+}
+
+// Parse Sina response line:
+// var hq_str_sh600000="浦发银行,8.35,8.28,8.30,8.40,8.25,8.30,8.31,..."
+function parseSinaLine(line) {
+  const m = line.match(/hq_str_[a-z]{2}(\d{6})="([^"]*)"/);
+  if (!m) return null;
+  const code = m[1];
+  const parts = m[2].split(',');
+  if (parts.length < 32) return null;
+  const price  = parseFloat(parts[3]);   // current price
+  const close  = parseFloat(parts[2]);   // yesterday close
+  const high   = parseFloat(parts[4]);
+  const low    = parseFloat(parts[5]);
+  const vol    = parseInt(parts[8]);
+  if (!price || !close) return null;
+  const chg  = +(price - close).toFixed(2);
+  const pct  = +((chg / close) * 100).toFixed(2);
+  const time = parts[30] + ' ' + parts[31];  // date + time
+  return { code, price, close, high, low, vol, chg, pct, time, status: 'ok' };
+}
+
+// Fetch quotes via JSONP proxy — Sina doesn't have CORS, use allorigins
+async function fetchQuotes(codes) {
+  if (!codes.length) return;
+
+  // Build Sina batch URL (max 50 per call)
+  const symbols = codes.map(sinaCode).join(',');
+  const sinaUrl = `https://hq.sinajs.cn/list=${symbols}`;
+  // Use allorigins.win as CORS proxy
+  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(sinaUrl)}`;
+
+  try {
+    const resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
+    if (!resp.ok) throw new Error('proxy ' + resp.status);
+    const data = await resp.json();
+    const lines = (data.contents || '').split('\n');
+    let parsed = 0;
+    lines.forEach(line => {
+      const q = parseSinaLine(line.trim());
+      if (q) { QUOTE_CACHE[q.code] = q; parsed++; }
+    });
+    if (parsed === 0) throw new Error('no data parsed');
+    lastQuoteTime = new Date();
+    updateQuoteStrip();
+    updateAllQuoteUI();
+    return parsed;
+  } catch(e) {
+    console.warn('Sina quote failed:', e.message);
+    // Fallback: try Eastmoney
+    return fetchQuotesEastmoney(codes);
+  }
+}
+
+// Eastmoney fallback: secid format
+async function fetchQuotesEastmoney(codes) {
+  // Eastmoney secid: 1.6xxxxx (SH) or 0.0xxxxx/0.3xxxxx (SZ)
+  const secids = codes.map(c => {
+    if (c.startsWith('6')) return '1.' + c;
+    return '0.' + c;
+  }).join(',');
+  const url = `https://push2.eastmoney.com/api/qt/ulist.np/get?secids=${secids}&fields=f12,f14,f2,f3,f4&ut=bd1d9ddb04089700cf9c27f6f7426281`;
+  const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+  try {
+    const resp = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
+    const data = await resp.json();
+    const parsed = JSON.parse(data.contents);
+    const items = parsed?.data?.diff || [];
+    items.forEach(item => {
+      const code  = String(item.f12).padStart(6,'0');
+      const price = item.f2 / 100;
+      const pct   = item.f3 / 100;
+      const chg   = item.f4 / 100;
+      QUOTE_CACHE[code] = { code, price, chg, pct, time: '', status: 'ok' };
+    });
+    lastQuoteTime = new Date();
+    updateQuoteStrip();
+    updateAllQuoteUI();
+  } catch(e) {
+    console.warn('Eastmoney fallback also failed:', e.message);
+    // Mark all as error
+    codes.forEach(c => { if (!QUOTE_CACHE[c]) QUOTE_CACHE[c] = { status: 'err' }; });
+    updateAllQuoteUI();
+  }
+}
+
+// Format helpers
+function fmtPrice(p) { return p > 0 ? p.toFixed(2) : '--'; }
+function fmtPct(p)   {
+  if (p === undefined || p === null) return '--';
+  const sign = p > 0 ? '+' : '';
+  return sign + p.toFixed(2) + '%';
+}
+function clsCls(pct) {
+  if (pct > 0) return 'up';
+  if (pct < 0) return 'dn';
+  return 'flat';
+}
+
+// Render a single stock row's quote area (called after cache is populated)
+function renderQuoteEl(code) {
+  const el = document.getElementById('q-' + code);
+  if (!el) return;
+  const q = QUOTE_CACHE[code];
+  if (!q || q.status === 'err') {
+    el.innerHTML = `<span class="squote-err">--</span>`;
+    return;
+  }
+  const cls = clsCls(q.pct);
+  el.innerHTML = `
+    <span class="squote-price ${cls}">${fmtPrice(q.price)}</span>
+    <span class="squote-chg ${cls}">${fmtPct(q.pct)}</span>`;
+}
+
+// Update all quote elements currently in DOM
+function updateAllQuoteUI() {
+  Object.keys(QUOTE_CACHE).forEach(code => renderQuoteEl(code));
+  // Also update quote bars at card level
+  updateQuoteBars();
+}
+
+// Update the mini quote bar at top of each card
+function updateQuoteBars() {
+  document.querySelectorAll('[data-qbar]').forEach(bar => {
+    const codes = bar.dataset.qbar.split(',');
+    bar.innerHTML = codes.map(code => {
+      const q = QUOTE_CACHE[code];
+      if (!q || q.status === 'err') return `<span class="qb-item"><span class="qb-name">${code}</span><span class="qb-price flat">--</span></span>`;
+      const cls = clsCls(q.pct);
+      return `
+        <span class="qb-item" onclick="window.open('https://finance.sina.com.cn/realstock/company/${sinaCode(code)}/nc.shtml','_blank')" title="点击查看${code}详情">
+          <span class="qb-name">${code}</span>
+          <span class="qb-price ${cls}">${fmtPrice(q.price)}</span>
+          <span class="qb-pct ${cls}">${fmtPct(q.pct)}</span>
+        </span>`;
+    }).join('<span class="qb-sep">·</span>');
+  });
+}
+
+// Update the quote refresh strip
+function updateQuoteStrip() {
+  const el = document.getElementById('quote-strip');
+  if (!el) return;
+  const t = lastQuoteTime ? lastQuoteTime.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '--';
+  el.querySelector('.qs-time').textContent = t;
+}
+
+// Is market open? (weekday 09:30-11:30, 13:00-15:00 CST)
+function isMarketOpen() {
+  const now = new Date();
+  const day = now.getDay();
+  if (day === 0 || day === 6) return false;
+  const h = now.getHours(), m = now.getMinutes();
+  const mins = h * 60 + m;
+  return (mins >= 9*60+25 && mins <= 11*60+35) || (mins >= 12*60+55 && mins <= 15*60+5);
+}
+
+// Manual refresh
+async function refreshQuotes() {
+  const btn = document.getElementById('btn-refresh-quote');
+  if (btn) { btn.disabled = true; btn.textContent = '刷新中…'; }
+  const codes = getAllCodes();
+  // Show loading state
+  codes.forEach(code => {
+    const el = document.getElementById('q-' + code);
+    if (el) el.innerHTML = '<span class="squote-loading">…</span>';
+  });
+  await fetchQuotes(codes);
+  if (btn) { btn.disabled = false; btn.textContent = '刷新行情'; }
+}
+
+// Auto-refresh loop
+function startQuoteRefresh() {
+  if (quoteRefreshTimer) clearInterval(quoteRefreshTimer);
+  // Refresh every 60s if market open, every 5min otherwise
+  const interval = isMarketOpen() ? 60000 : 5 * 60000;
+  quoteRefreshTimer = setInterval(async () => {
+    await fetchQuotes(getAllCodes());
+  }, interval);
+}
+
+
 function scheduleDailyUpdate() {
   const now = new Date();
   const next = new Date(now);
@@ -1041,9 +1326,11 @@ async function init() {
 
   renderAll();
   scheduleDailyUpdate();
+  startQuoteRefresh(); // start live quote auto-refresh
 }
 
 init();
 </script>
 </body>
 </html>
+
