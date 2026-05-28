@@ -1062,11 +1062,14 @@ function parseJSON(text) {
   // Try direct parse first
   try { return JSON.parse(text.trim()); } catch {}
   // Strip markdown fences
-  const stripped = text.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
+  const stripped = text.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
   try { return JSON.parse(stripped); } catch {}
-  // Extract first {...} block
-  const m = text.match(/\{[\s\S]*\}/);
-  if (m) return JSON.parse(m[0]);
+  // Extract first [...] array block
+  const arrMatch = text.match(/\[[\s\S]*\]/);
+  if (arrMatch) try { return JSON.parse(arrMatch[0]); } catch {}
+  // Extract first {...} object block
+  const objMatch = text.match(/\{[\s\S]*\}/);
+  if (objMatch) try { return JSON.parse(objMatch[0]); } catch {}
   throw new Error('AI返回内容无法解析为JSON');
 }
 
