@@ -1965,7 +1965,7 @@ async function analyzeEvent() {
   try {
     setStep(0,'done'); setStep(1,'active'); await new Promise(r=>setTimeout(r,400));
     setStep(1,'done'); setStep(2,'active');
-    const raw = await callAI([{role:'user',content:prompt}], 3000);
+    const raw = await callAI([{role:'user',content:prompt}], 5000);
     setStep(2,'done'); setStep(3,'active'); await new Promise(r=>setTimeout(r,300));
     const data = parseJSON(raw);
     setStep(3,'done'); setStep(4,'active'); await new Promise(r=>setTimeout(r,200));
@@ -2037,8 +2037,6 @@ function renderEventResult(data) {
         <span class="sector-badge ${secDir}">${sec.badge||''}</span>
         <span class="sector-dir">${dirIcon}</span>
       </div>
-        <span class="sector-dir">${dirIcon}</span>
-      </div>
       <div class="sector-body">
         <div class="sector-logic">${sec.logic||''}</div>
         <div class="stock-cards">${stocksHTML}</div>
@@ -2071,7 +2069,7 @@ function renderEventResult(data) {
     ${teardownHTML}
     <div class="sec-label fu">细分行业影响 · 龙头个股分析</div>
     <div class="sector-grid">${sectorsHTML}</div>
-    <div class="footer-note">⚠️ 以上分析由 Claude AI 生成，仅供研究参考，不构成投资建议。</div>`;
+    <div class="footer-note">⚠️ 以上分析由 DeepSeek AI 生成，仅供研究参考，不构成投资建议。</div>`;
 
   // Live quotes for event stocks
   const codes = (data.sectors||[]).flatMap(s=>(s.stocks||[]).map(st=>st.code)).filter(Boolean);
