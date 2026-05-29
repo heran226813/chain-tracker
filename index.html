@@ -65,18 +65,6 @@ header{padding:0 28px;height:58px;display:flex;align-items:center;justify-conten
 .btn-manual:hover{background:rgba(167,139,250,0.14);}
 .btn-manual:disabled{opacity:0.45;cursor:not-allowed;}
 .btn-manual.running{animation:pulse 1.2s ease infinite;}
-.api-key-panel{border-top:1px solid var(--border);padding:8px 16px;background:rgba(10,14,23,0.3);}
-.api-key-header{display:flex;align-items:center;gap:6px;cursor:pointer;padding:2px 0;user-select:none;}
-.api-key-header:hover{opacity:0.8;}
-.key-indicator{width:7px;height:7px;border-radius:50%;display:inline-block;background:var(--muted);flex-shrink:0;}
-.key-indicator.ok{background:var(--teal);}
-.key-indicator.err{background:var(--up);}
-.api-key-body{padding-top:6px;}
-.api-key-input{width:100%;padding:6px 8px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--txt);font-size:11px;font-family:'JetBrains Mono',monospace;outline:none;transition:border-color 0.15s;}
-.api-key-input:focus{border-color:var(--purple);}
-.api-key-input::placeholder{color:var(--muted);font-family:'Noto Sans SC',sans-serif;}
-.api-key-actions{display:flex;align-items:center;justify-content:space-between;margin-top:4px;}
-.api-key-status{font-size:9px;color:var(--teal);}
 
 /* ── Content ── */
 .content{flex:1;overflow-y:auto;padding:20px 26px;}
@@ -516,7 +504,7 @@ header{padding:0 28px;height:58px;display:flex;align-items:center;justify-conten
       <button class="mode-tab active" id="tab-price" onclick="switchMode('price')">📊 价格影响</button>
       <button class="mode-tab" id="tab-event" onclick="switchMode('event')">⚡ 事件分析</button>
     </div>
-    <span class="hbadge ai">✦ DeepSeek</span>
+    <span class="hbadge ai">✦ Claude AI</span>
     <span class="hbadge">v0.5</span>
     <span class="hbadge live" id="hd-time">● --:--</span>
   </div>
@@ -564,7 +552,7 @@ header{padding:0 28px;height:58px;display:flex;align-items:center;justify-conten
     </div>
     <div class="schedule-row">
       <span class="schedule-label">数据来源</span>
-      <span class="schedule-value" style="color:var(--purple)">DeepSeek + 联网</span>
+      <span class="schedule-value" style="color:var(--purple)">Claude AI + 联网</span>
     </div>
     <div class="schedule-row">
       <span class="schedule-label">下次更新</span>
@@ -574,22 +562,6 @@ header{padding:0 28px;height:58px;display:flex;align-items:center;justify-conten
     <button class="btn-manual" id="btn-manual-update" onclick="triggerManualUpdate()">
       <span id="manual-btn-text">⚡ 立即更新当前品种</span>
     </button>
-    <div class="api-key-panel">
-      <div class="api-key-header" onclick="toggleApiKeyPanel()">
-        ⚙️ <span style="font-size:10px;color:var(--muted)">DeepSeek API Key</span>
-        <span id="api-key-indicator" class="key-indicator" title="未配置"></span>
-      </div>
-      <div id="api-key-body" class="api-key-body" style="display:none">
-        <input type="password" id="api-key-input" class="api-key-input"
-          placeholder="输入你的 DeepSeek API Key" spellcheck="false"
-          oninput="onApiKeyInput()" />
-        <div class="api-key-actions">
-          <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener"
-            style="font-size:10px;color:var(--blue);text-decoration:none">获取 Key →</a>
-          <span id="api-key-status" class="api-key-status"></span>
-        </div>
-      </div>
-    </div>
   </div>
 </aside>
 
@@ -897,40 +869,6 @@ async function saveToStorage(com) {
   } catch(e) { console.warn('Storage save failed', e); }
 }
 
-/* ── DeepSeek API Key UI ───────────────────────────────────── */
-function toggleApiKeyPanel() {
-  const body = document.getElementById('api-key-body');
-  body.style.display = body.style.display === 'none' ? 'block' : 'none';
-  if (body.style.display === 'block') {
-    const input = document.getElementById('api-key-input');
-    input.value = getDeepSeekKey();
-    input.focus();
-    updateKeyIndicator();
-  }
-}
-function onApiKeyInput() {
-  const val = document.getElementById('api-key-input').value.trim();
-  setDeepSeekKey(val);
-  updateKeyIndicator();
-}
-function updateKeyIndicator() {
-  const key = getDeepSeekKey();
-  const dot = document.getElementById('api-key-indicator');
-  const status = document.getElementById('api-key-status');
-  if (!key) {
-    dot.className = 'key-indicator';
-    if (status) status.textContent = '';
-  } else if (key.length > 10) {
-    dot.className = 'key-indicator ok';
-    if (status) status.textContent = '✓ 已配置';
-  } else {
-    dot.className = 'key-indicator err';
-    if (status) status.textContent = 'Key 格式不正确';
-  }
-}
-// Init key indicator on load
-document.addEventListener('DOMContentLoaded', updateKeyIndicator);
-
 /* ══════════════════════════════════════
    CLOCK & SCHEDULE
 ══════════════════════════════════════ */
@@ -974,63 +912,63 @@ function appendLog(msg, type='info') {
 }
 
 /* ══════════════════════════════════════
-   AI UPDATE ENGINE  (v2 — split calls, lean prompts)
-   Root cause of old error: sending rise+fall+full existing data
-   in one request exceeded server limits. Fix: one call per
-   scenario, minimal prompt, no existing card JSON in payload.
+   AI ENGINE — DeepSeek via Cloudflare Worker 代理
+   架构: GitHub Pages → Cloudflare Worker → DeepSeek API
+   Worker 地址在下方 PROXY_URL 配置，部署后替换。
 ══════════════════════════════════════ */
 
-// ── DeepSeek API key management ────────────────────────────────
-function getDeepSeekKey() {
-  try { return localStorage.getItem('deepseek_api_key') || ''; } catch { return ''; }
-}
-function setDeepSeekKey(key) {
-  try { localStorage.setItem('deepseek_api_key', key); } catch {}
-}
+// ⚠️ 部署 Cloudflare Worker 后，把下面的地址替换成你的 Worker 地址
+// 格式: https://anthropic-proxy.你的用户名.workers.dev
+const PROXY_URL = 'https://anthropic-proxy.PLACEHOLDER.workers.dev';
 
-// ── Slim streaming call with retry (DeepSeek / OpenAI-compatible) ─
+// DeepSeek 模型配置
+const DS_MODEL = 'deepseek-chat';   // deepseek-chat = DeepSeek-V3，性价比最高
+const DS_SYSTEM = '你是专业的A股产业链投资研究员。只输出合法JSON，不输出任何解释、markdown或代码块。';
+
+// ── 核心 AI 调用函数（OpenAI 兼容格式，DeepSeek 支持）─────────
 async function callAI(messages, maxTokens = 2000, retries = 2) {
-  const apiKey = getDeepSeekKey();
-  if (!apiKey) {
-    throw new Error('请先设置 DeepSeek API Key（点击左下角 ⚙️ 配置）');
-  }
-  // System prompt embedded as first message (OpenAI-compatible format)
-  const msgs = [
-    { role: 'system', content: 'You are an A-share supply-chain analyst. Output ONLY valid JSON, no markdown, no explanation.' },
-    ...messages,
+  // 把 messages 里只有 content 字符串的条目标准化
+  const normalized = messages.map(m => ({
+    role: m.role,
+    content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+  }));
+
+  // 在 messages 最前面注入 system 角色（DeepSeek 支持 system role）
+  const fullMessages = [
+    { role: 'system', content: DS_SYSTEM },
+    ...normalized,
   ];
+
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const resp = await fetch('https://api.deepseek.com/v1/chat/completions', {
+      const resp = await fetch(PROXY_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'deepseek-chat',
-          max_tokens: maxTokens,
-          messages: msgs,
-          stream: true,
-        })
+          model:       DS_MODEL,
+          max_tokens:  maxTokens,
+          messages:    fullMessages,
+          stream:      true,
+          temperature: 0.3,   // 降低随机性，JSON 更稳定
+        }),
       });
 
       if (!resp.ok) {
         const errText = await resp.text().catch(() => resp.statusText);
-        // 500/502/503 = server errors — retryable
-        if ((resp.status === 500 || resp.status === 502 || resp.status === 503) && attempt < retries) {
+        if ((resp.status === 500 || resp.status === 529 || resp.status === 503) && attempt < retries) {
           const wait = 3000 * (attempt + 1);
-          appendLog(`服务器繁忙 (${resp.status})，${wait/1000}s 后重试 (${attempt+1}/${retries})…`, 'warn');
+          appendLog(`服务器繁忙 (${resp.status})，${wait/1000}s 后重试…`, 'warn');
           await new Promise(r => setTimeout(r, wait));
           continue;
         }
-        throw new Error(`HTTP ${resp.status}: ${errText.slice(0, 120)}`);
+        throw new Error(`HTTP ${resp.status}: ${errText.slice(0, 200)}`);
       }
 
-      // Stream read (OpenAI SSE format)
+      // ── 读取 OpenAI 格式的 SSE 流 ────────────────────────────
+      // DeepSeek 流格式: data: {"choices":[{"delta":{"content":"..."}}]}
       const reader = resp.body.getReader();
-      const dec = new TextDecoder();
-      let full = '';
+      const dec    = new TextDecoder();
+      let full     = '';
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -1040,12 +978,13 @@ async function callAI(messages, maxTokens = 2000, retries = 2) {
           if (d === '[DONE]') continue;
           try {
             const p = JSON.parse(d);
-            const content = p.choices?.[0]?.delta?.content || '';
-            if (content) full += content;
+            const delta = p.choices?.[0]?.delta?.content;
+            if (delta) full += delta;
           } catch {}
         }
       }
       return full;
+
     } catch (err) {
       if (attempt < retries) {
         appendLog(`请求异常：${err.message}，重试中…`, 'warn');
@@ -1062,14 +1001,11 @@ function parseJSON(text) {
   // Try direct parse first
   try { return JSON.parse(text.trim()); } catch {}
   // Strip markdown fences
-  const stripped = text.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
+  const stripped = text.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
   try { return JSON.parse(stripped); } catch {}
-  // Extract first [...] array block
-  const arrMatch = text.match(/\[[\s\S]*\]/);
-  if (arrMatch) try { return JSON.parse(arrMatch[0]); } catch {}
-  // Extract first {...} object block
-  const objMatch = text.match(/\{[\s\S]*\}/);
-  if (objMatch) try { return JSON.parse(objMatch[0]); } catch {}
+  // Extract first {...} block
+  const m = text.match(/\{[\s\S]*\}/);
+  if (m) return JSON.parse(m[0]);
   throw new Error('AI返回内容无法解析为JSON');
 }
 
@@ -1115,22 +1051,51 @@ async function fetchMeta(com, comName, today) {
   try { return parseJSON(raw); } catch { return {}; }
 }
 
+// ── Sanitize a value used as CSS class token ─────────────────────
+// Ensures the value is a non-empty string from an allowed set,
+// falling back to `fallback` if it's empty/null/undefined/invalid.
+function safeCls(val, allowed, fallback) {
+  const v = (val || '').trim();
+  return allowed.includes(v) ? v : fallback;
+}
+
 // ── Apply parsed cards onto WORKING with diff markers ───────────
 function applyCards(com, scenario, newCards) {
   const oldCards = WORKING[com][scenario].cards;
   WORKING[com][scenario].cards = newCards.map(nc => {
     const oc = oldCards.find(c => c.industry === nc.industry);
+
+    // Sanitize every field that gets used as a CSS class token
+    const badge = safeCls(nc.badge, ['positive','negative','mixed'], 'mixed');
+    const mag   = safeCls(nc.mag,   ['high','med','low'],            'med');
+    const conf  = safeCls(nc.conf,  ['high','med','low'],            'med');
+    const dir   = (nc.dir || '🟡').trim() || '🟡';
+    const lc    = safeCls(nc.lc || nc.badge, ['positive','negative','mixed'], badge);
+
     return {
       ...nc,
-      lc: nc.lc || nc.badge,
+      badge, mag, conf, dir, lc,
+      icon:       (nc.icon        || '📊').trim() || '📊',
+      industry:   (nc.industry    || '未知行业').trim(),
+      badgeText:  (nc.badgeText   || badge).trim() || badge,
+      logic:      (nc.logic       || '').trim(),
       _isNew:     !oc,
-      _isChanged: oc && (oc.badge !== nc.badge || oc.mag !== nc.mag || oc.conf !== nc.conf),
+      _isChanged: oc && (oc.badge !== badge || oc.mag !== mag || oc.conf !== conf),
       _aiInsight: nc.aiInsight || null,
-      stocks: (nc.stocks || []).map(s => ({
-        ...s,
-        _isNew:  oc ? !oc.stocks?.find(os => os.code === s.code) : true,
-        _delta:  s.isDelta !== 'same' ? s.isDelta : null,
-      }))
+      stocks: (nc.stocks || []).map(s => {
+        const sCls = safeCls(s.cls, ['up','dn','neutral'], 'neutral');
+        return {
+          ...s,
+          code:   (s.code   || '000000').trim(),
+          name:   (s.name   || '未知').trim(),
+          note:   (s.note   || '').trim(),
+          impact: (s.impact || '--').trim(),
+          cls:    sCls,
+          isDelta: s.isDelta || 'same',
+          _isNew:  oc ? !oc.stocks?.find(os => os.code === s.code) : true,
+          _delta:  s.isDelta && s.isDelta !== 'same' ? s.isDelta : null,
+        };
+      })
     };
   });
 }
@@ -1259,7 +1224,7 @@ function updateSidebarDot(com) {
   if (!dot) return;
   const s = META[com].status;
   dot.className = 'ai-dot';
-  if (s === 'fresh') { /* teal (default) */ }
+  if (s === 'fresh') dot.classList.add('');       // teal (default)
   else if (s === 'stale') dot.classList.add('stale');
   else if (s === 'error') dot.classList.add('error');
   else if (s === 'running') dot.style.animation = 'pulse 0.8s ease infinite';
@@ -1286,7 +1251,7 @@ function renderStatusBar(com) {
   ).join('');
 
   let statusMsg = '';
-  if (status === 'fresh') statusMsg = `<strong>今日已更新</strong> · ${lastTime} · DeepSeek + 联网分析`;
+  if (status === 'fresh') statusMsg = `<strong>今日已更新</strong> · ${lastTime} · Claude AI + 联网分析`;
   else if (status === 'running') statusMsg = `<strong>AI 分析中…</strong> · 正在检索最新行业数据，请稍候`;
   else if (status === 'error') statusMsg = `<strong>更新失败</strong> · 请点击"立即更新"重试`;
   else if (status === 'base') statusMsg = `<strong>使用基准数据</strong> · 尚未进行AI更新 · 点击左侧"立即更新"获取最新分析`;
@@ -1419,7 +1384,7 @@ function renderAll() {
 
     <div class="footer-note">
       ⚠️ 本工具仅供研究参考，不构成投资建议。AI分析结果基于语言模型推理，需结合实际数据验证。<br>
-      每日 06:00 自动更新 ｜ DeepSeek + 联网分析 ｜ 历史版本可回溯对比 ｜ Demo v0.5
+      每日 06:00 自动更新 ｜ Claude AI + 联网分析 ｜ 历史版本可回溯对比 ｜ Demo v0.4
     </div>
   `;
 
@@ -1428,6 +1393,12 @@ function renderAll() {
   // Render cards
   const grid = document.getElementById('impact-grid');
   s.cards.forEach((card,i) => {
+    // Second line of defense: sanitize at render time too
+    const badge = safeCls(card.badge, ['positive','negative','mixed'], 'mixed');
+    const mag   = safeCls(card.mag,   ['high','med','low'],            'med');
+    const conf  = safeCls(card.conf,  ['high','med','low'],            'med');
+    const lc    = safeCls(card.lc,    ['positive','negative','mixed'], badge);
+
     const el = document.createElement('div');
     let cls = 'icard fu';
     if (card._isNew) cls += ' is-new';
@@ -1435,8 +1406,8 @@ function renderAll() {
     el.className = cls;
     el.style.animationDelay = (i*0.055)+'s';
 
-    const ml = card.mag==='high'?'高影响':card.mag==='med'?'中影响':'低影响';
-    const cl = card.conf==='high'?'高置信':card.conf==='med'?'中置信':'低置信';
+    const ml = mag==='high'?'高影响':mag==='med'?'中影响':'低影响';
+    const cl = conf==='high'?'高置信':conf==='med'?'中置信':'低置信';
 
     const aiBox = card._aiInsight ? `
       <div class="ai-insight-box">
@@ -1444,31 +1415,35 @@ function renderAll() {
         ${card._aiInsight}
       </div>` : '';
 
-    const rows = (card.stocks||[]).map(st=>`
-      <div class="srow${st._isNew?' is-new':''}">
-        <div class="scode">${st.code}</div>
-        <div class="sname">${st.name}${st._delta?`<span class="delta-tag ${st._delta}">${st._delta==='up'?'↑升':'↓降'}</span>`:''}</div>
-        <div class="snote">${st.note}</div>
-        <div class="squote" id="q-${st.code}"><span class="squote-loading">…</span></div>
-      </div>`).join('');
+    const rows = (card.stocks||[]).map(st=>{
+      const sCls = safeCls(st.cls, ['up','dn','neutral'], 'neutral');
+      const delta = st._delta && ['up','dn'].includes(st._delta) ? st._delta : null;
+      return `
+        <div class="srow${st._isNew?' is-new':''}">
+          <div class="scode">${st.code||''}</div>
+          <div class="sname">${st.name||''}${delta?`<span class="delta-tag ${delta}">${delta==='up'?'↑升':'↓降'}</span>`:''}</div>
+          <div class="snote">${st.note||''}</div>
+          <div class="squote" id="q-${st.code}"><span class="squote-loading">…</span></div>
+        </div>`;
+    }).join('');
 
-    // Quote bar — show all stock codes for this card
+    // Quote bar
     const cardCodes = (card.stocks||[]).map(s=>s.code).filter(Boolean).join(',');
     const qbar = cardCodes ? `<div class="quote-bar qb-loading" data-qbar="${cardCodes}">
       <span class="live-dot"></span>行情加载中…</div>` : '';
 
     el.innerHTML = `
       <div class="icard-hd">
-        <span style="font-size:18px">${card.icon}</span>
-        <span class="iindustry">${card.industry}</span>
-        <span class="ibadge ${card.badge}">${card.badgeText}<span class="magbadge ${card.mag}">${ml}</span></span>
-        <span class="confbadge ${card.conf}">${cl}</span>
-        <span class="idir">${card.dir}</span>
+        <span style="font-size:18px">${card.icon||'📊'}</span>
+        <span class="iindustry">${card.industry||''}</span>
+        <span class="ibadge ${badge}">${card.badgeText||badge}<span class="magbadge ${mag}">${ml}</span></span>
+        <span class="confbadge ${conf}">${cl}</span>
+        <span class="idir">${card.dir||'🟡'}</span>
       </div>
       ${qbar}
       <div class="icard-body">
         ${aiBox}
-        <div class="ilogic ${card.lc}">${card.logic}</div>
+        <div class="ilogic ${lc}">${card.logic||''}</div>
         <div class="slist">${rows}</div>
       </div>`;
     grid.appendChild(el);
@@ -1862,29 +1837,31 @@ function renderEventResult(data) {
     </div>`).join('');
 
   const sectorsHTML = (data.sectors||[]).map(sec=>{
-    const dirIcon = sec.direction==='bullish'?'🟢':sec.direction==='bearish'?'🔴':'🟡';
+    const secDir = safeCls(sec.direction, ['bullish','bearish','mixed'], 'mixed');
+    const dirIcon = secDir==='bullish'?'🟢':secDir==='bearish'?'🔴':'🟡';
     const stocksHTML = (sec.stocks||[]).slice(0,3).map(st=>{
-      const impCls = st.direction==='bullish'?(st.impact?.includes('强烈')?'strong-bull':'bull'):st.direction==='bearish'?(st.impact?.includes('强烈')?'strong-bear':'bear'):'neutral';
-      return `<div class="stock-card ${st.direction}">
+      const stDir = safeCls(st.direction, ['bullish','bearish','neutral'], 'neutral');
+      const impCls = stDir==='bullish'?(st.impact?.includes('强烈')?'strong-bull':'bull'):stDir==='bearish'?(st.impact?.includes('强烈')?'strong-bear':'bear'):'neutral';
+      return `<div class="stock-card ${stDir}">
         <div class="stock-card-top">
-          <div class="sc-rank">${st.rank}</div>
-          <div class="sc-code">${st.code}</div>
-          <div class="sc-name">${st.name}</div>
+          <div class="sc-rank">${st.rank||'-'}</div>
+          <div class="sc-code">${st.code||''}</div>
+          <div class="sc-name">${st.name||''}</div>
           <div class="sc-impact-badge ${impCls}">${st.impact||'--'}</div>
           <div class="sc-quote loading" id="eq-${st.code}">…</div>
         </div>
-        <div class="sc-reason ${st.direction}">${st.reason}</div>
+        <div class="sc-reason ${stDir}">${st.reason||''}</div>
       </div>`;
     }).join('');
-    return `<div class="sector-card ${sec.direction} fu">
+    return `<div class="sector-card ${secDir} fu">
       <div class="sector-hd">
         <span class="sector-icon">${sec.icon||'📊'}</span>
-        <span class="sector-name">${sec.name}</span>
-        <span class="sector-badge ${sec.direction}">${sec.badge}</span>
+        <span class="sector-name">${sec.name||''}</span>
+        <span class="sector-badge ${secDir}">${sec.badge||''}</span>
         <span class="sector-dir">${dirIcon}</span>
       </div>
       <div class="sector-body">
-        <div class="sector-logic">${sec.logic}</div>
+        <div class="sector-logic">${sec.logic||''}</div>
         <div class="stock-cards">${stocksHTML}</div>
       </div>
     </div>`;
@@ -1914,7 +1891,7 @@ function renderEventResult(data) {
     <div class="event-chain fu">${chainHTML}</div>
     <div class="sec-label fu">细分行业影响 · 龙头个股分析</div>
     <div class="sector-grid">${sectorsHTML}</div>
-    <div class="footer-note">⚠️ 以上分析由 DeepSeek 生成，仅供研究参考，不构成投资建议。</div>`;
+    <div class="footer-note">⚠️ 以上分析由 Claude AI 生成，仅供研究参考，不构成投资建议。</div>`;
 
   // Live quotes for event stocks
   const codes = (data.sectors||[]).flatMap(s=>(s.stocks||[]).map(st=>st.code)).filter(Boolean);
