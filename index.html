@@ -1906,42 +1906,42 @@ async function analyzeEvent() {
   document.getElementById('event-result').innerHTML='';
   showProgress(); setStep(0,'active');
 
-  const prompt = `你是A股产业链投资研究员，擅长对重大事件做深入的**产业链拆解分析**。
+  const prompt = `你是A股产业链投资研究员，擅长对重大事件做深入的产业链拆解分析。
 
 分析以下重大事件对A股产业链的影响：
 
 事件：${eventText}
 
 分析要求：
-1. 先进行**产业链拆解**：针对事件涉及的硬件产品/技术，细化到具体元器件、零部件、材料层级
-2. 然后在拆解基础上，分析每个受影响的**细分行业/零部件领域**
+1. 先进行产业链拆解：针对事件涉及的硬件产品/技术，细化到具体元器件、零部件、材料层级
+2. 然后在拆解基础上，分析每个受影响的细分行业/零部件领域
 3. 对于科技硬件类事件（芯片发布、新机发布、架构升级等），必须深入到 MLCC、PCB、HBM、封装、散热、电源管理、连接器、光模块、存储器等元器件层级
 4. 每个细分领域给出产业链传导逻辑
 
-输出严格JSON（无其他文字）：
+只输出严格JSON（无其他文字）：
 {
-  "eventName": "事件简称10字内",
+  "eventName": "事件简称(10字内)",
   "eventIcon": "emoji",
   "eventType": "policy|macro|industry|geopolitics|tech",
-  "summary": "事件背景与核心影响逻辑3句话",
+  "summary": "事件背景与核心影响逻辑(3句话)",
   "duration": "短期|中期|长期",
   "magnitude": "重大|显著|一般",
-  "bullCount": 数字,
-  "bearCount": 数字,
-  "teardown": [  ← 新增：产业链/供应链拆解层
-    {"component": "元器件/零部件名", "desc": "该部件在该产品中的作用和用量", "relevance": "high|med|low"}
+  "bullCount": 受益行业数量,
+  "bearCount": 受损行业数量,
+  "teardown": [
+    {"component": "元器件/零部件名", "desc": "该部件的作用和用量", "relevance": "high|med|low"}
   ],
   "chainImpact": [
     {"layer": "传导层次名", "direction": "bullish|bearish|mixed", "items": ["要点1","要点2"]}
   ],
   "sectors": [
     {
-      "name": "细分行业/零部件领域名",
+      "name": "细分行业或零部件领域名称",
       "icon": "emoji",
       "direction": "bullish|bearish|mixed",
       "badge": "强烈利好|利好|中性偏好|中性偏空|利空|强烈利空",
       "logic": "2-3句包含产业链传导路径和营收关联",
-      "isComponent": true,  ← true表示是元器件级领域
+      "isComponent": true,
       "stocks": [
         {
           "rank": 1,
@@ -1949,7 +1949,7 @@ async function analyzeEvent() {
           "name": "公司名",
           "direction": "bullish|bearish|neutral",
           "impact": "强烈利好|利好|中性|利空|强烈利空",
-          "reason": "具体受影响理由，含业务关联和营收占比数据"
+          "reason": "具体受影响理由含业务关联和营收占比数据"
         }
       ]
     }
@@ -1957,20 +1957,25 @@ async function analyzeEvent() {
 }
 
 要求：
-- sectors数量 **8-15 个**，覆盖足够细分的领域（元器件级如MLCC、HBM、封装基板、散热模组、电源管理IC、PCB/CCL、SFP光模块、服务器BMC等）
-- 每个行业给 **3-4 只** A股
+- sectors数量 6-10 个，覆盖足够细分的领域（元器件级如MLCC、HBM、封装基板、散热模组、电源管理IC、PCB/CCL、SFP光模块、服务器BMC等）
+- 每个行业给 3-4 只 A股，isComponent:属于元器件级领域填true否则false
 - 代码必须真实，逻辑必须具体含数据
 - 只输出JSON，无其他文字`;
 
+  let raw = '';
   try {
     setStep(0,'done'); setStep(1,'active'); await new Promise(r=>setTimeout(r,400));
     setStep(1,'done'); setStep(2,'active');
-    const raw = await callAI([{role:'user',content:prompt}], 5000);
+    raw = await callAI([{role:'user',content:prompt}], 5000);
     setStep(2,'done'); setStep(3,'active'); await new Promise(r=>setTimeout(r,300));
     const data = parseJSON(raw);
     setStep(3,'done'); setStep(4,'active'); await new Promise(r=>setTimeout(r,200));
     setStep(4,'done'); await new Promise(r=>setTimeout(r,350));
     hideProgress();
+
+    if (!data.sectors || !data.sectors.length) {
+      appendLog(`⚠ AI返回数据结构异常，raw前200字: ${(raw||'').slice(0,200)}`, 'warn');
+    }
 
     const entry = {id:Date.now(), eventText, data, date:new Date().toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})};
     eventHistory.unshift(entry);
@@ -1983,7 +1988,8 @@ async function analyzeEvent() {
     hideProgress();
     const res = document.getElementById('event-result');
     res.classList.add('visible');
-    res.innerHTML=`<div style="background:rgba(255,77,79,0.07);border:1px solid rgba(255,77,79,0.2);border-radius:9px;padding:16px 18px;color:var(--up);font-size:12px;">✗ 分析失败：${err.message}<br><span style="color:var(--muted);font-size:10px;margin-top:4px;display:block">请重试</span></div>`;
+    const preview = (raw||'').slice(0,300);
+    res.innerHTML=`<div style="background:rgba(255,77,79,0.07);border:1px solid rgba(255,77,79,0.2);border-radius:9px;padding:16px 18px;color:var(--up);font-size:12px;">✗ 分析失败：${err.message}${preview?'<br><span style="color:var(--txt2);font-size:10px;margin-top:6px;display:block;word-break:break-all">响应预览：'+preview+'</span>':''}<br><span style="color:var(--muted);font-size:10px;margin-top:4px;display:block">请重试</span></div>`;
   }
   isAnalyzing=false; btn.disabled=false; btn.classList.remove('running'); btnTxt.textContent='✦ 重新分析';
 }
