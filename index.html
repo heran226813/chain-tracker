@@ -1057,15 +1057,44 @@ async function callAI(messages, maxTokens = 2000, retries = 2) {
 
 // ── Parse JSON robustly from AI response ────────────────────────
 function parseJSON(text) {
-  // Try direct parse first
-  try { return JSON.parse(text.trim()); } catch {}
-  // Strip markdown fences
-  const stripped = text.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
-  try { return JSON.parse(stripped); } catch {}
-  // Extract first {...} block
-  const m = text.match(/\{[\s\S]*\}/);
-  if (m) return JSON.parse(m[0]);
-  throw new Error('AI返回内容无法解析为JSON');
+  if (!text || !text.trim()) throw new Error('AI返回内容为空');
+
+  const t = text.trim();
+
+  // 1. Direct parse
+  try { return JSON.parse(t); } catch {}
+
+  // 2. Strip markdown fences (```json ... ``` or ``` ... ```)
+  const fenced = t.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+  try { return JSON.parse(fenced); } catch {}
+
+  // 3. Find outermost {...} by matching braces (handles trailing garbage)
+  const start = t.indexOf('{');
+  if (start !== -1) {
+    let depth = 0, end = -1;
+    for (let i = start; i < t.length; i++) {
+      if (t[i] === '{') depth++;
+      else if (t[i] === '}') { depth--; if (depth === 0) { end = i; break; } }
+    }
+    if (end !== -1) {
+      try { return JSON.parse(t.slice(start, end + 1)); } catch {}
+    }
+  }
+
+  // 4. Find outermost [...] (DeepSeek sometimes returns array)
+  const startArr = t.indexOf('[');
+  if (startArr !== -1) {
+    let depth = 0, end = -1;
+    for (let i = startArr; i < t.length; i++) {
+      if (t[i] === '[') depth++;
+      else if (t[i] === ']') { depth--; if (depth === 0) { end = i; break; } }
+    }
+    if (end !== -1) {
+      try { return JSON.parse(t.slice(startArr, end + 1)); } catch {}
+    }
+  }
+
+  throw new Error(`JSON解析失败，原始内容前100字符: ${t.slice(0, 100)}`);
 }
 
 // ── Build one scenario's cards via a single focused call ────────
@@ -1603,44 +1632,60 @@ function jsonp(url, cbParam = 'callback') {
 }
 
 // ── Eastmoney secid format ───────────────────────────────────────
+// ── Eastmoney secid 格式（备用接口用）─────────────────────────────
 function emSecid(code) {
-  if (code.startsWith('6')) return '1.' + code;   // SH
-  if (code.startsWith('4') || code.startsWith('8')) return '0.' + code; // BJ
-  return '0.' + code;                              // SZ
+  if (code.startsWith('6')) return '1.' + code;
+  if (code.startsWith('4') || code.startsWith('8')) return '0.' + code;
+  return '0.' + code;
 }
 
-// ── Primary: Eastmoney JSONP (原生支持跨域，无需代理) ────────────
+// ── 股票代码转腾讯格式 ──────────────────────────────────────────
+function txCode(code) {
+  if (code.startsWith('6')) return 'sh' + code;
+  if (code.startsWith('4') || code.startsWith('8')) return 'bj' + code;
+  return 'sz' + code;
+}
+
+// ── 主行情接口：腾讯证券（天然CORS，无需代理）──────────────────
+// 返回格式: v_sh600000="1~浦发银行~600000~8.30~8.28~8.35~...";
 async function fetchQuotes(codes) {
   if (!codes.length) return;
 
-  // Split into batches of 30
+  // 分批，每批 50 个
   const batches = [];
-  for (let i = 0; i < codes.length; i += 30) batches.push(codes.slice(i, i + 30));
+  for (let i = 0; i < codes.length; i += 50) batches.push(codes.slice(i, i + 50));
 
   let totalParsed = 0;
   for (const batch of batches) {
-    const secids = batch.map(emSecid).join(',');
-    // fields: f12=代码 f14=名称 f2=现价(x100) f3=涨跌幅(x100) f4=涨跌额(x100) f15=最高 f16=最低 f18=昨收
-    const url = `https://push2.eastmoney.com/api/qt/ulist.np/get?secids=${secids}&fields=f12,f14,f2,f3,f4,f15,f16,f18&fltt=2&invt=2`;
+    const symbols = batch.map(txCode).join(',');
+    const url = `https://qt.gtimg.cn/q=${symbols}`;
     try {
-      const data = await jsonp(url, 'cb');
-      const items = data?.data?.diff || [];
-      items.forEach(item => {
-        const code  = String(item.f12).padStart(6, '0');
-        const price = item.f2 === '-' ? null : parseFloat(item.f2);
-        const pct   = item.f3 === '-' ? null : parseFloat(item.f3);
-        const chg   = item.f4 === '-' ? null : parseFloat(item.f4);
-        const high  = item.f15 === '-' ? null : parseFloat(item.f15);
-        const low   = item.f16 === '-' ? null : parseFloat(item.f16);
-        const close = item.f18 === '-' ? null : parseFloat(item.f18);
-        const name  = item.f14 || '';
-        if (price) {
-          QUOTE_CACHE[code] = { code, name, price, pct, chg, high, low, close, status: 'ok' };
-          totalParsed++;
-        }
+      const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const text = await resp.text();
+      // 每行格式: v_sh600000="1~名称~代码~现价~昨收~今开~成交量~...~涨跌额~涨跌幅~..."
+      text.split('\n').forEach(line => {
+        const m = line.match(/v_[a-z]{2}(\d{6})="([^"]*)"/);
+        if (!m) return;
+        const code  = m[1];
+        const parts = m[2].split('~');
+        if (parts.length < 32) return;
+        const price = parseFloat(parts[3]);
+        const close = parseFloat(parts[4]);  // 昨收
+        const chg   = parseFloat(parts[31]); // 涨跌额
+        const pct   = parseFloat(parts[32]); // 涨跌幅
+        if (!price) return;
+        QUOTE_CACHE[code] = {
+          code, price, close, chg, pct,
+          high:  parseFloat(parts[33]) || 0,
+          low:   parseFloat(parts[34]) || 0,
+          name:  parts[1] || '',
+          status: 'ok'
+        };
+        totalParsed++;
       });
     } catch(e) {
-      console.warn('Eastmoney JSONP batch failed:', e.message, '— trying fetch fallback');
+      console.warn('腾讯行情失败:', e.message, '→ 尝试东方财富备用');
       await fetchQuotesFallback(batch);
     }
   }
@@ -1653,29 +1698,29 @@ async function fetchQuotes(codes) {
   return totalParsed;
 }
 
-// ── Fallback: Eastmoney fetch API (有CORS头，部分场景可用) ───────
+// ── 备用：东方财富 fetch 接口 ────────────────────────────────────
 async function fetchQuotesFallback(codes) {
   const secids = codes.map(emSecid).join(',');
-  const url = `https://push2.eastmoney.com/api/qt/ulist.np/get?secids=${secids}&fields=f12,f14,f2,f3,f4&fltt=2&invt=2&cb=`;
+  const url = `https://push2.eastmoney.com/api/qt/ulist.np/get?secids=${secids}&fields=f12,f14,f2,f3,f4&fltt=2`;
   try {
-    const resp = await fetch(url, { signal: AbortSignal.timeout(8000), mode: 'cors' });
-    const text = await resp.text();
-    // Response may be wrapped: cb({...}) or plain JSON
-    const jsonStr = text.replace(/^[^(]*\(/, '').replace(/\)[^)]*$/, '');
-    const data = JSON.parse(jsonStr);
+    const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
     const items = data?.data?.diff || [];
     items.forEach(item => {
-      const code  = String(item.f12).padStart(6, '0');
+      const code  = String(item.f12 || '').padStart(6, '0');
       const price = parseFloat(item.f2);
       const pct   = parseFloat(item.f3);
       const chg   = parseFloat(item.f4);
-      if (price) QUOTE_CACHE[code] = { code, price, pct, chg, status: 'ok' };
+      if (code && price) {
+        QUOTE_CACHE[code] = { code, price, pct, chg, name: item.f14 || '', status: 'ok' };
+      }
     });
     lastQuoteTime = new Date();
     updateQuoteStrip();
     updateAllQuoteUI();
   } catch(e) {
-    console.warn('Fetch fallback also failed:', e.message);
+    console.warn('东方财富备用也失败:', e.message);
     codes.forEach(c => { if (!QUOTE_CACHE[c]) QUOTE_CACHE[c] = { status: 'err' }; });
     updateAllQuoteUI();
   }
