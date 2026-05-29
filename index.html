@@ -52,6 +52,20 @@ header{padding:0 28px;height:58px;display:flex;align-items:center;justify-conten
 .csep{margin:8px 16px;border:none;border-top:1px solid var(--border);}
 .coming-soon{padding:6px 16px 10px;font-size:9px;color:var(--muted);font-style:italic;}
 
+/* ── API Key panel ── */
+.api-key-panel{border-top:1px solid var(--border);padding:8px 16px;background:rgba(10,14,23,0.3);}
+.api-key-header{display:flex;align-items:center;gap:6px;cursor:pointer;padding:2px 0;user-select:none;}
+.api-key-header:hover{opacity:0.8;}
+.key-indicator{width:7px;height:7px;border-radius:50%;display:inline-block;background:var(--muted);flex-shrink:0;}
+.key-indicator.ok{background:var(--teal);}
+.key-indicator.err{background:var(--up);}
+.api-key-body{padding-top:6px;}
+.api-key-input{width:100%;padding:6px 8px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--txt);font-size:11px;font-family:'JetBrains Mono',monospace;outline:none;transition:border-color 0.15s;}
+.api-key-input:focus{border-color:var(--purple);}
+.api-key-input::placeholder{color:var(--muted);font-family:'Noto Sans SC',sans-serif;}
+.api-key-actions{display:flex;align-items:center;justify-content:space-between;margin-top:4px;}
+.api-key-status{font-size:9px;color:var(--teal);}
+
 /* ── Sidebar bottom: schedule panel ── */
 .schedule-panel{border-top:1px solid var(--border);padding:12px 16px;background:rgba(10,14,23,0.5);}
 .schedule-title{font-size:9px;letter-spacing:0.18em;color:var(--muted);text-transform:uppercase;margin-bottom:8px;}
@@ -562,6 +576,22 @@ header{padding:0 28px;height:58px;display:flex;align-items:center;justify-conten
     <button class="btn-manual" id="btn-manual-update" onclick="triggerManualUpdate()">
       <span id="manual-btn-text">⚡ 立即更新当前品种</span>
     </button>
+    <div class="api-key-panel">
+      <div class="api-key-header" onclick="toggleApiKeyPanel()">
+        ⚙️ <span style="font-size:10px;color:var(--muted)">DeepSeek API Key</span>
+        <span id="api-key-indicator" class="key-indicator" title="未配置"></span>
+      </div>
+      <div id="api-key-body" class="api-key-body" style="display:none">
+        <input type="password" id="api-key-input" class="api-key-input"
+          placeholder="输入你的 DeepSeek API Key" spellcheck="false"
+          oninput="onApiKeyInput()" />
+        <div class="api-key-actions">
+          <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener"
+            style="font-size:10px;color:var(--blue);text-decoration:none">获取 Key →</a>
+          <span id="api-key-status" class="api-key-status"></span>
+        </div>
+      </div>
+    </div>
   </div>
 </aside>
 
@@ -912,60 +942,89 @@ function appendLog(msg, type='info') {
 }
 
 /* ══════════════════════════════════════
-   AI ENGINE — DeepSeek via Cloudflare Worker 代理
-   架构: GitHub Pages → Cloudflare Worker → DeepSeek API
-   Worker 地址在下方 PROXY_URL 配置，部署后替换。
+   AI ENGINE — DeepSeek（直接调用，Key存localStorage）
+   架构: GitHub Pages → api.deepseek.com（DeepSeek支持CORS）
 ══════════════════════════════════════ */
 
-// ⚠️ 部署 Cloudflare Worker 后，把下面的地址替换成你的 Worker 地址
-// 格式: https://anthropic-proxy.你的用户名.workers.dev
-const PROXY_URL = 'https://anthropic-proxy.PLACEHOLDER.workers.dev';
+// ── DeepSeek API Key 管理 ─────────────────────────────────────
+function getDeepSeekKey() {
+  try { return localStorage.getItem('deepseek_api_key') || ''; } catch { return ''; }
+}
+function setDeepSeekKey(key) {
+  try { localStorage.setItem('deepseek_api_key', key); } catch {}
+}
 
-// DeepSeek 模型配置
-const DS_MODEL = 'deepseek-chat';   // deepseek-chat = DeepSeek-V3，性价比最高
-const DS_SYSTEM = '你是专业的A股产业链投资研究员。只输出合法JSON，不输出任何解释、markdown或代码块。';
+// ── Key UI 交互 ───────────────────────────────────────────────
+function toggleApiKeyPanel() {
+  const body = document.getElementById('api-key-body');
+  body.style.display = body.style.display === 'none' ? 'block' : 'none';
+  if (body.style.display === 'block') {
+    const input = document.getElementById('api-key-input');
+    input.value = getDeepSeekKey();
+    input.focus();
+    updateKeyIndicator();
+  }
+}
+function onApiKeyInput() {
+  const val = document.getElementById('api-key-input').value.trim();
+  setDeepSeekKey(val);
+  updateKeyIndicator();
+}
+function updateKeyIndicator() {
+  const key = getDeepSeekKey();
+  const dot    = document.getElementById('api-key-indicator');
+  const status = document.getElementById('api-key-status');
+  if (!key) {
+    dot.className = 'key-indicator';
+    if (status) status.textContent = '';
+  } else if (key.length > 10) {
+    dot.className = 'key-indicator ok';
+    if (status) status.textContent = '✓ 已配置';
+  } else {
+    dot.className = 'key-indicator err';
+    if (status) status.textContent = 'Key 格式不正确';
+  }
+}
 
-// ── 核心 AI 调用函数（OpenAI 兼容格式，DeepSeek 支持）─────────
+// ── 核心 AI 调用（OpenAI-compatible，DeepSeek 原生支持 CORS）──
 async function callAI(messages, maxTokens = 2000, retries = 2) {
-  // 把 messages 里只有 content 字符串的条目标准化
-  const normalized = messages.map(m => ({
-    role: m.role,
-    content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
-  }));
-
-  // 在 messages 最前面注入 system 角色（DeepSeek 支持 system role）
-  const fullMessages = [
-    { role: 'system', content: DS_SYSTEM },
-    ...normalized,
+  const apiKey = getDeepSeekKey();
+  if (!apiKey) {
+    throw new Error('请先设置 DeepSeek API Key（点击左下角 ⚙️ 配置）');
+  }
+  const msgs = [
+    { role: 'system', content: '你是专业的A股产业链投资研究员。只输出合法JSON，不输出任何解释、markdown或代码块。' },
+    ...messages,
   ];
-
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const resp = await fetch(PROXY_URL, {
+      const resp = await fetch('https://api.deepseek.com/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
         body: JSON.stringify({
-          model:       DS_MODEL,
-          max_tokens:  maxTokens,
-          messages:    fullMessages,
-          stream:      true,
-          temperature: 0.3,   // 降低随机性，JSON 更稳定
+          model:      'deepseek-chat',
+          max_tokens: maxTokens,
+          messages:   msgs,
+          stream:     true,
+          temperature: 0.3,
         }),
       });
 
       if (!resp.ok) {
         const errText = await resp.text().catch(() => resp.statusText);
-        if ((resp.status === 500 || resp.status === 529 || resp.status === 503) && attempt < retries) {
+        if ((resp.status === 500 || resp.status === 502 || resp.status === 503) && attempt < retries) {
           const wait = 3000 * (attempt + 1);
           appendLog(`服务器繁忙 (${resp.status})，${wait/1000}s 后重试…`, 'warn');
           await new Promise(r => setTimeout(r, wait));
           continue;
         }
-        throw new Error(`HTTP ${resp.status}: ${errText.slice(0, 200)}`);
+        throw new Error(`HTTP ${resp.status}: ${errText.slice(0, 120)}`);
       }
 
-      // ── 读取 OpenAI 格式的 SSE 流 ────────────────────────────
-      // DeepSeek 流格式: data: {"choices":[{"delta":{"content":"..."}}]}
+      // 读取 OpenAI SSE 流
       const reader = resp.body.getReader();
       const dec    = new TextDecoder();
       let full     = '';
@@ -978,8 +1037,8 @@ async function callAI(messages, maxTokens = 2000, retries = 2) {
           if (d === '[DONE]') continue;
           try {
             const p = JSON.parse(d);
-            const delta = p.choices?.[0]?.delta?.content;
-            if (delta) full += delta;
+            const text = p.choices?.[0]?.delta?.content || '';
+            if (text) full += text;
           } catch {}
         }
       }
@@ -1989,6 +2048,7 @@ async function init() {
   scheduleDailyUpdate();
   startQuoteRefresh();
   loadEventHistory();
+  updateKeyIndicator(); // 初始化显示 Key 状态
 }
 
 init();
