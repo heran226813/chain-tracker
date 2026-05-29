@@ -425,6 +425,19 @@ header{padding:0 28px;height:58px;display:flex;align-items:center;justify-conten
 
 /* Sector cards */
 .sector-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;margin-bottom:22px;}
+.sector-card.component{border-color:rgba(56,189,248,0.25);background:rgba(56,189,248,0.02);}
+.component-badge{font-size:8px;padding:1px 5px;border-radius:3px;background:rgba(56,189,248,0.12);color:var(--blue);border:1px solid rgba(56,189,248,0.2);letter-spacing:0.05em;font-weight:500;white-space:nowrap;margin-left:auto;}
+.teardown-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;}
+.teardown-chip{padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);flex:1 1 200px;max-width:300px;min-width:180px;transition:all 0.15s;}
+.teardown-chip:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.2);}
+.teardown-chip.high{border-color:rgba(45,212,191,0.3);background:rgba(45,212,191,0.03);}
+.teardown-chip.med{border-color:rgba(240,180,41,0.2);}
+.teardown-name{font-size:12px;font-weight:600;margin-bottom:4px;}
+.teardown-desc{font-size:10px;color:var(--txt2);line-height:1.5;margin-bottom:6px;}
+.teardown-rel{font-size:9px;padding:1px 6px;border-radius:3px;font-weight:500;}
+.teardown-rel.high{color:var(--teal);background:rgba(45,212,191,0.08);}
+.teardown-rel.med{color:var(--gold);background:rgba(240,180,41,0.08);}
+.teardown-rel.low{color:var(--muted);background:rgba(74,90,114,0.08);}
 .sector-card{background:var(--bg2);border:1px solid var(--border);border-radius:11px;overflow:hidden;transition:all 0.18s;}
 .sector-card:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,0.25);}
 .sector-card.bullish{border-color:rgba(0,181,120,0.3);}
@@ -1893,14 +1906,61 @@ async function analyzeEvent() {
   document.getElementById('event-result').innerHTML='';
   showProgress(); setStep(0,'active');
 
-  const prompt = `你是A股产业链投资研究员。分析以下重大事件对A股产业链的影响。
+  const prompt = `你是A股产业链投资研究员，擅长对重大事件做深入的**产业链拆解分析**。
+
+分析以下重大事件对A股产业链的影响：
 
 事件：${eventText}
 
-输出严格JSON（无其他文字）：
-{"eventName":"事件简称10字内","eventIcon":"emoji","eventType":"policy|macro|industry|geopolitics|tech","summary":"事件背景与核心影响逻辑3句话","duration":"短期|中期|长期","magnitude":"重大|显著|一般","bullCount":数字,"bearCount":数字,"chainImpact":[{"layer":"传导层次名","direction":"bullish|bearish|mixed","items":["要点1","要点2"]}],"sectors":[{"name":"细分行业名","icon":"emoji","direction":"bullish|bearish|mixed","badge":"强烈利好|利好|中性偏好|中性偏空|利空|强烈利空","logic":"该行业受影响核心逻辑2-3句包含传导路径","stocks":[{"rank":1,"code":"6位A股代码","name":"公司名","direction":"bullish|bearish|neutral","impact":"强烈利好|利好|中性|利空|强烈利空","reason":"该公司具体受影响理由2-3句点明业务关联和营收占比"}]}]}
+分析要求：
+1. 先进行**产业链拆解**：针对事件涉及的硬件产品/技术，细化到具体元器件、零部件、材料层级
+2. 然后在拆解基础上，分析每个受影响的**细分行业/零部件领域**
+3. 对于科技硬件类事件（芯片发布、新机发布、架构升级等），必须深入到 MLCC、PCB、HBM、封装、散热、电源管理、连接器、光模块、存储器等元器件层级
+4. 每个细分领域给出产业链传导逻辑
 
-要求：sectors列4-7个细分行业每个行业给3只龙头A股，代码必须真实，理由要具体含数据，只输出JSON。`;
+输出严格JSON（无其他文字）：
+{
+  "eventName": "事件简称10字内",
+  "eventIcon": "emoji",
+  "eventType": "policy|macro|industry|geopolitics|tech",
+  "summary": "事件背景与核心影响逻辑3句话",
+  "duration": "短期|中期|长期",
+  "magnitude": "重大|显著|一般",
+  "bullCount": 数字,
+  "bearCount": 数字,
+  "teardown": [  ← 新增：产业链/供应链拆解层
+    {"component": "元器件/零部件名", "desc": "该部件在该产品中的作用和用量", "relevance": "high|med|low"}
+  ],
+  "chainImpact": [
+    {"layer": "传导层次名", "direction": "bullish|bearish|mixed", "items": ["要点1","要点2"]}
+  ],
+  "sectors": [
+    {
+      "name": "细分行业/零部件领域名",
+      "icon": "emoji",
+      "direction": "bullish|bearish|mixed",
+      "badge": "强烈利好|利好|中性偏好|中性偏空|利空|强烈利空",
+      "logic": "2-3句包含产业链传导路径和营收关联",
+      "isComponent": true,  ← true表示是元器件级领域
+      "stocks": [
+        {
+          "rank": 1,
+          "code": "6位A股代码",
+          "name": "公司名",
+          "direction": "bullish|bearish|neutral",
+          "impact": "强烈利好|利好|中性|利空|强烈利空",
+          "reason": "具体受影响理由，含业务关联和营收占比数据"
+        }
+      ]
+    }
+  ]
+}
+
+要求：
+- sectors数量 **8-15 个**，覆盖足够细分的领域（元器件级如MLCC、HBM、封装基板、散热模组、电源管理IC、PCB/CCL、SFP光模块、服务器BMC等）
+- 每个行业给 **3-4 只** A股
+- 代码必须真实，逻辑必须具体含数据
+- 只输出JSON，无其他文字`;
 
   try {
     setStep(0,'done'); setStep(1,'active'); await new Promise(r=>setTimeout(r,400));
@@ -1940,6 +2000,18 @@ function renderEventResult(data) {
       ${(node.items||[]).map(item=>`<div class="ec-item">${item}</div>`).join('')}
     </div>`).join('');
 
+  const teardownHTML = (data.teardown||[]).length ? `
+    <div class="sec-label fu" style="margin-top:20px">🔧 供应链拆解 · 元器件/零部件层级</div>
+    <div class="teardown-grid fu">
+      ${(data.teardown||[]).map(t => `
+        <div class="teardown-chip ${t.relevance}">
+          <div class="teardown-name">${t.component}</div>
+          <div class="teardown-desc">${t.desc}</div>
+          <span class="teardown-rel ${t.relevance}">${t.relevance === 'high' ? '高相关' : t.relevance === 'med' ? '中相关' : '低相关'}</span>
+        </div>
+      `).join('')}
+    </div>` : '';
+
   const sectorsHTML = (data.sectors||[]).map(sec=>{
     const secDir = safeCls(sec.direction, ['bullish','bearish','mixed'], 'mixed');
     const dirIcon = secDir==='bullish'?'🟢':secDir==='bearish'?'🔴':'🟡';
@@ -1957,11 +2029,14 @@ function renderEventResult(data) {
         <div class="sc-reason ${stDir}">${st.reason||''}</div>
       </div>`;
     }).join('');
-    return `<div class="sector-card ${secDir} fu">
+    return `<div class="sector-card ${secDir} ${sec.isComponent?'component':''} fu">
       <div class="sector-hd">
         <span class="sector-icon">${sec.icon||'📊'}</span>
         <span class="sector-name">${sec.name||''}</span>
+        ${sec.isComponent?'<span class="component-badge">元器件</span>':''}
         <span class="sector-badge ${secDir}">${sec.badge||''}</span>
+        <span class="sector-dir">${dirIcon}</span>
+      </div>
         <span class="sector-dir">${dirIcon}</span>
       </div>
       <div class="sector-body">
@@ -1993,6 +2068,7 @@ function renderEventResult(data) {
     </div>
     <div class="sec-label fu">事件传导链</div>
     <div class="event-chain fu">${chainHTML}</div>
+    ${teardownHTML}
     <div class="sec-label fu">细分行业影响 · 龙头个股分析</div>
     <div class="sector-grid">${sectorsHTML}</div>
     <div class="footer-note">⚠️ 以上分析由 Claude AI 生成，仅供研究参考，不构成投资建议。</div>`;
