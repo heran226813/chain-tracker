@@ -438,6 +438,35 @@ header{padding:0 28px;height:58px;display:flex;align-items:center;justify-conten
 .teardown-rel.high{color:var(--teal);background:rgba(45,212,191,0.08);}
 .teardown-rel.med{color:var(--gold);background:rgba(240,180,41,0.08);}
 .teardown-rel.low{color:var(--muted);background:rgba(74,90,114,0.08);}
+
+/* Peer comparison */
+.peer-grid{display:flex;flex-direction:column;gap:16px;margin-bottom:22px;}
+.peer-card{background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:16px;transition:all 0.18s;}
+.peer-card:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,0.25);}
+.peer-overseas{padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:4px;}
+.peer-ov-header{display:flex;align-items:baseline;gap:8px;margin-bottom:6px;}
+.peer-ov-name{font-size:14px;font-weight:700;color:var(--fg);}
+.peer-ov-code{font-size:9px;color:var(--muted);font-weight:400;}
+.peer-ov-mcap{font-size:10px;color:var(--txt2);margin-bottom:4px;}
+.peer-ov-change{font-size:12px;color:var(--dn);font-weight:600;margin-bottom:4px;}
+.peer-ov-reason{font-size:10px;color:var(--txt2);line-height:1.6;}
+.peer-vs{text-align:center;font-size:16px;color:var(--muted);padding:6px 0 2px;}
+.peer-cn-list{padding:4px 0 8px;}
+.peer-cn-label{font-size:9px;letter-spacing:0.15em;color:var(--gold);text-transform:uppercase;margin-bottom:8px;}
+.peer-cn{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:7px;padding:10px 12px;margin-bottom:6px;}
+.peer-cn:last-child{margin-bottom:0;}
+.peer-cn-name{font-size:12px;font-weight:600;display:inline;margin-right:8px;}
+.peer-cn-code{font-size:9px;color:var(--muted);display:inline;}
+.peer-cn-mcap{font-size:10px;color:var(--txt2);margin:4px 0;}
+.peer-cn-biz{font-size:10px;color:var(--teal);margin-bottom:4px;}
+.peer-cn-logic{font-size:10px;color:var(--txt2);line-height:1.5;}
+.peer-opportunity{background:rgba(45,212,191,0.04);border:1px solid rgba(45,212,191,0.12);border-radius:7px;padding:10px 12px;margin-top:6px;}
+.peer-opportunity.med{border-color:rgba(240,180,41,0.15);background:rgba(240,180,41,0.03);}
+.peer-opportunity.low{border-color:rgba(255,77,79,0.1);background:rgba(255,77,79,0.02);}
+.peer-opp-badge{font-size:9px;padding:2px 7px;border-radius:4px;font-weight:500;display:inline-block;margin-bottom:6px;background:rgba(45,212,191,0.1);color:var(--teal);}
+.peer-opp-badge.med{background:rgba(240,180,41,0.1);color:var(--gold);}
+.peer-opp-badge.low{background:rgba(255,77,79,0.08);color:var(--up);}
+.peer-opp-reason{font-size:10px;color:var(--txt2);line-height:1.6;}
 .sector-card{background:var(--bg2);border:1px solid var(--border);border-radius:11px;overflow:hidden;transition:all 0.18s;}
 .sector-card:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,0.25);}
 .sector-card.bullish{border-color:rgba(0,181,120,0.3);}
@@ -1917,6 +1946,7 @@ async function analyzeEvent() {
 2. 然后在拆解基础上，分析每个受影响的细分行业/零部件领域
 3. 对于科技硬件类事件（芯片发布、新机发布、架构升级等），必须深入到 MLCC、PCB、HBM、封装、散热、电源管理、连接器、光模块、存储器等元器件层级
 4. 每个细分领域给出产业链传导逻辑
+5. 进行海外对标分析：若事件涉及海外龙头公司业务变化（如戴尔、英伟达、苹果、特斯拉等暴涨），找出A股/港股中做相同或高度相似业务的公司，对比市值差距，分析是否存在确定性跟涨/补涨机会
 
 只输出严格JSON（无其他文字）：
 {
@@ -1953,12 +1983,34 @@ async function analyzeEvent() {
         }
       ]
     }
-  ]
+  ],
+	"peerComparison": [
+	  {
+	    "overseasCompany": "海外对标公司名(如Dell/Nvidia/Apple)",
+	    "overseasCode": "DELL.US",
+	    "overseasChange": "事件后涨幅(%或描述)",
+	    "overseasMarketCap": "海外公司市值",
+	    "overseasSurgeReason": "该海外公司股价大涨的核心原因",
+	    "cnPeers": [
+	      {
+	        "name": "A股/港股对标公司",
+	        "code": "000977",
+	        "marketCap": "国内公司市值",
+	        "bizSimilarity": "业务重合度说明",
+	        "logic": "跟涨/补涨逻辑分析"
+	      }
+	    ],
+	    "oppType": "补涨|跟涨|估值修复|联动",
+	    "oppConfidence": "高|中|低",
+	    "oppReason": "综合分析市值差距、业务重合度、A股历史跟涨规律的确定性结论"
+	  }
+	],
 }
 
 要求：
 - sectors数量 6-10 个，覆盖足够细分的领域（元器件级如MLCC、HBM、封装基板、散热模组、电源管理IC、PCB/CCL、SFP光模块、服务器BMC等）
 - 每个行业给 3-4 只 A股，isComponent:属于元器件级领域填true否则false
+- peerComparison:若事件直接涉及海外龙头公司必须给出1-3组对标分析(否则省略该字段)
 - 代码必须真实，逻辑必须具体含数据
 - 只输出JSON，无其他文字`;
 
@@ -2050,6 +2102,44 @@ function renderEventResult(data) {
     </div>`;
   }).join('');
 
+  const peerComparisonHTML = (data.peerComparison||[]).length ? `
+    <div class="sec-label fu" style="margin-top:20px">🌐 海外对标 · 跨市场比价</div>
+    <div class="peer-grid fu">
+      ${(data.peerComparison||[]).map(pc => {
+        const confCls = pc.oppConfidence === '高' ? 'high' : pc.oppConfidence === '中' ? 'med' : 'low';
+        const peersHTML = (pc.cnPeers||[]).map(cp => `
+          <div class="peer-cn">
+            <div class="peer-cn-name">${cp.name||''}</div>
+            <div class="peer-cn-code">${cp.code||''}</div>
+            <div class="peer-cn-mcap">${cp.marketCap||''}</div>
+            <div class="peer-cn-biz">${cp.bizSimilarity||''}</div>
+            <div class="peer-cn-logic">${cp.logic||''}</div>
+          </div>
+        `).join('');
+        return `
+        <div class="peer-card">
+          <div class="peer-overseas">
+            <div class="peer-ov-header">
+              <span class="peer-ov-name">${pc.overseasCompany||''}</span>
+              <span class="peer-ov-code">${pc.overseasCode||''}</span>
+            </div>
+            <div class="peer-ov-mcap">市值：${pc.overseasMarketCap||'--'}</div>
+            <div class="peer-ov-change">📈 ${pc.overseasChange||''}</div>
+            <div class="peer-ov-reason">${pc.overseasSurgeReason||''}</div>
+          </div>
+          <div class="peer-vs">⬇</div>
+          <div class="peer-cn-list">
+            <div class="peer-cn-label">A股/港股对标</div>
+            ${peersHTML}
+          </div>
+          ${pc.oppReason ? `
+          <div class="peer-opportunity ${confCls}">
+            <span class="peer-opp-badge ${confCls}">${pc.oppType||'联动'} · 确定性${pc.oppConfidence||'中'}</span>
+            <div class="peer-opp-reason">${pc.oppReason}</div>
+          </div>` : ''}
+        </div>`;
+      }).join('')}
+    </div>` : '';
   el.innerHTML = `
     <div class="event-header-card fu">
       <div class="event-title-row">
@@ -2075,6 +2165,7 @@ function renderEventResult(data) {
     ${teardownHTML}
     <div class="sec-label fu">细分行业影响 · 龙头个股分析</div>
     <div class="sector-grid">${sectorsHTML}</div>
+    ${peerComparisonHTML}
     <div class="footer-note">⚠️ 以上分析由 DeepSeek AI 生成，仅供研究参考，不构成投资建议。</div>`;
 
   // Live quotes for event stocks
