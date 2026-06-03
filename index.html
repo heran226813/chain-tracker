@@ -1107,40 +1107,28 @@ async function callAI(messages, maxTokens = 2000, retries = 2) {
 // ── Parse JSON robustly from AI response ────────────────────────
 function parseJSON(text) {
   if (!text || !text.trim()) throw new Error('AI返回内容为空');
-
   const t = text.trim();
 
-  // 1. Direct parse
+  // 1. 直接解析
   try { return JSON.parse(t); } catch {}
 
-  // 2. Strip markdown fences (```json ... ``` or ``` ... ```)
+  // 2. 去掉 markdown 代码块
   const fenced = t.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
   try { return JSON.parse(fenced); } catch {}
 
-  // 3. Find outermost {...} by matching braces (handles trailing garbage)
+  // 3. 截取第一个 { 到最后一个 } 之间的内容
+  //    用 lastIndexOf 而非逐字符匹配，避免 emoji 多字节问题
   const start = t.indexOf('{');
-  if (start !== -1) {
-    let depth = 0, end = -1;
-    for (let i = start; i < t.length; i++) {
-      if (t[i] === '{') depth++;
-      else if (t[i] === '}') { depth--; if (depth === 0) { end = i; break; } }
-    }
-    if (end !== -1) {
-      try { return JSON.parse(t.slice(start, end + 1)); } catch {}
-    }
+  const end   = t.lastIndexOf('}');
+  if (start !== -1 && end > start) {
+    try { return JSON.parse(t.slice(start, end + 1)); } catch {}
   }
 
-  // 4. Find outermost [...] (DeepSeek sometimes returns array)
+  // 4. 截取第一个 [ 到最后一个 ] （返回数组时）
   const startArr = t.indexOf('[');
-  if (startArr !== -1) {
-    let depth = 0, end = -1;
-    for (let i = startArr; i < t.length; i++) {
-      if (t[i] === '[') depth++;
-      else if (t[i] === ']') { depth--; if (depth === 0) { end = i; break; } }
-    }
-    if (end !== -1) {
-      try { return JSON.parse(t.slice(startArr, end + 1)); } catch {}
-    }
+  const endArr   = t.lastIndexOf(']');
+  if (startArr !== -1 && endArr > startArr) {
+    try { return JSON.parse(t.slice(startArr, endArr + 1)); } catch {}
   }
 
   throw new Error(`JSON解析失败，原始内容前100字符: ${t.slice(0, 100)}`);
