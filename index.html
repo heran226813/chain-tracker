@@ -905,24 +905,30 @@ let isUpdating = false;
 
 /* ══════════════════════════════════════
    PERSISTENT STORAGE HELPERS
+   使用 localStorage（兼容 GitHub Pages 和 Artifact 环境）
 ══════════════════════════════════════ */
+function lsGet(key) {
+  try { const v = localStorage.getItem(key); return v ? { value: v } : null; } catch { return null; }
+}
+function lsSet(key, value) {
+  try { localStorage.setItem(key, value); } catch(e) { console.warn('lsSet failed', e); }
+}
+function lsDel(key) {
+  try { localStorage.removeItem(key); } catch {}
+}
+
 async function loadFromStorage(com) {
   try {
-    const [histRes, metaRes] = await Promise.all([
-      window.storage.get(STORAGE_KEYS.history(com)),
-      window.storage.get(STORAGE_KEYS.metadata(com)),
-    ]);
+    const histRes = lsGet(STORAGE_KEYS.history(com));
+    const metaRes = lsGet(STORAGE_KEYS.metadata(com));
     if (histRes) {
       const saved = JSON.parse(histRes.value);
       if (saved && saved.length > 0) {
         HISTORY[com] = saved;
         historyIdx[com] = saved.length - 1;
-        // Apply latest snapshot
-        if (saved.length > 0) {
-          const latest = saved[saved.length - 1];
-          if (latest.rise) WORKING[com].rise = latest.rise;
-          if (latest.fall) WORKING[com].fall = latest.fall;
-        }
+        const latest = saved[saved.length - 1];
+        if (latest.rise) WORKING[com].rise = latest.rise;
+        if (latest.fall) WORKING[com].fall = latest.fall;
       }
     }
     if (metaRes) {
@@ -936,8 +942,8 @@ async function loadFromStorage(com) {
 
 async function saveToStorage(com) {
   try {
-    await window.storage.set(STORAGE_KEYS.history(com), JSON.stringify(HISTORY[com]));
-    await window.storage.set(STORAGE_KEYS.metadata(com), JSON.stringify(META[com]));
+    lsSet(STORAGE_KEYS.history(com),   JSON.stringify(HISTORY[com]));
+    lsSet(STORAGE_KEYS.metadata(com),  JSON.stringify(META[com]));
   } catch(e) { console.warn('Storage save failed', e); }
 }
 
@@ -971,8 +977,9 @@ function updateClock() {
    LOG HELPER
 ══════════════════════════════════════ */
 function appendLog(msg, type='info') {
+  // ai-log-box 只在价格驱动页面存在，事件分析页面没有，直接跳过
   const box = document.getElementById('ai-log-box');
-  if (!box) return;
+  if (!box) { console.log(`[${type}]`, msg); return; }
   box.classList.add('visible');
   const now = new Date();
   const ts = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
@@ -2032,7 +2039,7 @@ async function analyzeEvent() {
     const entry = {id:Date.now(), eventText, data, date:new Date().toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})};
     eventHistory.unshift(entry);
     if (eventHistory.length>20) eventHistory.pop();
-    try { await window.storage.set('event-history', JSON.stringify(eventHistory)); } catch{}
+    try { lsSet('event-history', JSON.stringify(eventHistory)); } catch{}
 
     renderEventResult(data);
     renderEventHistory();
@@ -2210,14 +2217,14 @@ function replayEvent(id) {
 
 async function clearEventHistory() {
   eventHistory=[];
-  try{await window.storage.delete('event-history');}catch{}
+  try{ lsDel('event-history'); }catch{}
   renderEventHistory();
 }
 
 async function loadEventHistory() {
   try {
-    const r=await window.storage.get('event-history');
-    if (r){eventHistory=JSON.parse(r.value)||[];renderEventHistory();}
+    const r = lsGet('event-history');
+    if (r) { eventHistory = JSON.parse(r.value) || []; renderEventHistory(); }
   } catch{}
 }
 
