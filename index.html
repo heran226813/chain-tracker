@@ -1942,98 +1942,78 @@ async function analyzeEvent() {
   document.getElementById('event-result').innerHTML='';
   showProgress(); setStep(0,'active');
 
-  const prompt = `你是A股产业链投资研究员，擅长对重大事件做深入的产业链拆解分析。
-
-分析以下重大事件对A股产业链的影响：
+  const prompt = `分析以下事件对A股产业链的影响，只输出JSON，不要任何解释或markdown。
 
 事件：${eventText}
 
-分析要求：
-1. 先进行产业链拆解：针对事件涉及的硬件产品/技术，细化到具体元器件、零部件、材料层级
-2. 然后在拆解基础上，分析每个受影响的细分行业/零部件领域
-3. 对于科技硬件类事件（芯片发布、新机发布、架构升级等），必须深入到 MLCC、PCB、HBM、封装、散热、电源管理、连接器、光模块、存储器等元器件层级
-4. 每个细分领域给出产业链传导逻辑
-5. 进行海外对标分析：若事件涉及海外龙头公司业务变化（如戴尔、英伟达、苹果、特斯拉等暴涨），找出A股/港股中做相同或高度相似业务的公司，对比市值差距，分析是否存在确定性跟涨/补涨机会
-
-只输出严格JSON（无其他文字）：
+JSON格式：
 {
-  "eventName": "事件简称(10字内)",
-  "eventIcon": "emoji",
-  "eventType": "policy|macro|industry|geopolitics|tech",
-  "summary": "事件背景与核心影响逻辑(3句话)",
-  "duration": "短期|中期|长期",
-  "magnitude": "重大|显著|一般",
-  "bullCount": 受益行业数量,
-  "bearCount": 受损行业数量,
-  "teardown": [
-    {"component": "元器件/零部件名", "desc": "该部件的作用和用量", "relevance": "high|med|low"}
-  ],
+  "eventName": "10字内简称",
+  "eventIcon": "一个emoji",
+  "eventType": "policy或macro或industry或geopolitics或tech之一",
+  "summary": "3句话概括事件背景和核心影响",
+  "duration": "短期或中期或长期之一",
+  "magnitude": "重大或显著或一般之一",
+  "bullCount": 受益行业数字,
+  "bearCount": 受损行业数字,
   "chainImpact": [
-    {"layer": "传导层次名", "direction": "bullish|bearish|mixed", "items": ["要点1","要点2"]}
+    {"layer": "传导层次名称", "direction": "bullish或bearish或mixed之一", "items": ["要点1", "要点2"]}
   ],
   "sectors": [
     {
-      "name": "细分行业或零部件领域名称",
+      "name": "细分行业名称",
       "icon": "emoji",
-      "direction": "bullish|bearish|mixed",
-      "badge": "强烈利好|利好|中性偏好|中性偏空|利空|强烈利空",
-      "logic": "2-3句包含产业链传导路径和营收关联",
-      "isComponent": true,
+      "direction": "bullish或bearish或mixed之一",
+      "badge": "强烈利好或利好或中性偏好或中性偏空或利空或强烈利空之一",
+      "logic": "2句话说明传导逻辑",
+      "isComponent": false,
       "stocks": [
         {
           "rank": 1,
           "code": "6位A股代码",
           "name": "公司名",
-          "direction": "bullish|bearish|neutral",
-          "impact": "强烈利好|利好|中性|利空|强烈利空",
-          "reason": "具体受影响理由含业务关联和营收占比数据"
+          "direction": "bullish或bearish或neutral之一",
+          "impact": "强烈利好或利好或中性或利空或强烈利空之一",
+          "reason": "2句话说明具体理由"
         }
       ]
     }
-  ],
-	"peerComparison": [
-	  {
-	    "overseasCompany": "海外对标公司名(如Dell/Nvidia/Apple)",
-	    "overseasCode": "DELL.US",
-	    "overseasChange": "事件后涨幅(%或描述)",
-	    "overseasMarketCap": "海外公司市值",
-	    "overseasSurgeReason": "该海外公司股价大涨的核心原因",
-	    "cnPeers": [
-	      {
-	        "name": "A股/港股对标公司",
-	        "code": "000977",
-	        "marketCap": "国内公司市值",
-	        "bizSimilarity": "业务重合度说明",
-	        "logic": "跟涨/补涨逻辑分析"
-	      }
-	    ],
-	    "oppType": "补涨|跟涨|估值修复|联动",
-	    "oppConfidence": "高|中|低",
-	    "oppReason": "综合分析市值差距、业务重合度、A股历史跟涨规律的确定性结论"
-	  }
-	],
+  ]
 }
 
-要求：
-- sectors数量 6-10 个，覆盖足够细分的领域（元器件级如MLCC、HBM、封装基板、散热模组、电源管理IC、PCB/CCL、SFP光模块、服务器BMC等）
-- 每个行业给 3-4 只 A股，isComponent:属于元器件级领域填true否则false
-- peerComparison:若事件直接涉及海外龙头公司必须给出1-3组对标分析(否则省略该字段)
-- 代码必须真实，逻辑必须具体含数据
-- 只输出JSON，无其他文字`;
+规则：sectors给5-7个行业，每个行业给3只A股龙头，代码必须是真实的6位A股代码，只输出JSON。`;
 
   let raw = '';
   try {
     setStep(0,'done'); setStep(1,'active'); await new Promise(r=>setTimeout(r,400));
     setStep(1,'done'); setStep(2,'active');
-    raw = await callAI([{role:'user',content:prompt}], 5000);
+    raw = await callAI([{role:'user',content:prompt}], 4000);
     setStep(2,'done'); setStep(3,'active'); await new Promise(r=>setTimeout(r,300));
+
+    // 调试：把原始响应打印到控制台
+    console.log('[EventAnalysis] raw length:', raw.length);
+    console.log('[EventAnalysis] raw preview:', raw.slice(0, 500));
+
     const data = parseJSON(raw);
+
+    console.log('[EventAnalysis] parsed keys:', Object.keys(data));
+    console.log('[EventAnalysis] sectors count:', data.sectors?.length);
+
     setStep(3,'done'); setStep(4,'active'); await new Promise(r=>setTimeout(r,200));
     setStep(4,'done'); await new Promise(r=>setTimeout(r,350));
     hideProgress();
 
+    // 数据异常时直接在页面上显示原始响应供调试
     if (!data.sectors || !data.sectors.length) {
-      appendLog(`⚠ AI返回数据结构异常，raw前200字: ${(raw||'').slice(0,200)}`, 'warn');
+      const res = document.getElementById('event-result');
+      res.classList.add('visible');
+      res.innerHTML = `
+        <div style="background:rgba(240,180,41,0.07);border:1px solid rgba(240,180,41,0.2);border-radius:9px;padding:16px 18px;margin-bottom:16px;">
+          <div style="color:var(--gold);font-size:12px;font-weight:600;margin-bottom:8px;">⚠ AI返回数据缺少sectors字段，显示原始响应：</div>
+          <pre style="font-size:10px;color:var(--txt2);white-space:pre-wrap;word-break:break-all;max-height:300px;overflow-y:auto;">${raw.slice(0,2000)}</pre>
+        </div>`;
+      isAnalyzing=false; btn.disabled=false; btn.classList.remove('running'); btnTxt.textContent='✦ 重新分析';
+      return;
     }
 
     const entry = {id:Date.now(), eventText, data, date:new Date().toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})};
