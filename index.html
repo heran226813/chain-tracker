@@ -1978,28 +1978,31 @@ JSON格式：
     raw = await callAI([{role:'user',content:prompt}], 4000);
     setStep(2,'done'); setStep(3,'active'); await new Promise(r=>setTimeout(r,300));
 
-    // 调试：把原始响应打印到控制台
     console.log('[EventAnalysis] raw length:', raw.length);
     console.log('[EventAnalysis] raw preview:', raw.slice(0, 500));
 
     const data = parseJSON(raw);
 
-    console.log('[EventAnalysis] parsed keys:', Object.keys(data));
-    console.log('[EventAnalysis] sectors count:', data.sectors?.length);
+    console.log('[EventAnalysis] parsed data:', JSON.stringify(data).slice(0, 500));
+    console.log('[EventAnalysis] sectors:', data.sectors);
+    console.log('[EventAnalysis] chainImpact:', data.chainImpact);
 
     setStep(3,'done'); setStep(4,'active'); await new Promise(r=>setTimeout(r,200));
     setStep(4,'done'); await new Promise(r=>setTimeout(r,350));
     hideProgress();
 
-    // 数据异常时直接在页面上显示原始响应供调试
+    // 始终先把原始数据显示到页面，方便诊断
+    const res = document.getElementById('event-result');
+    res.classList.add('visible');
+    res.innerHTML = `
+      <div style="background:rgba(56,189,248,0.05);border:1px solid rgba(56,189,248,0.2);border-radius:9px;padding:14px 16px;margin-bottom:16px;font-size:10px;">
+        <div style="color:var(--blue);font-weight:600;margin-bottom:6px;">🔍 调试信息（确认正常后会移除）</div>
+        <div style="color:var(--txt2);margin-bottom:4px)">raw长度: ${raw.length} | sectors: ${data.sectors?.length||0} | chainImpact: ${data.chainImpact?.length||0}</div>
+        <pre style="color:var(--muted);font-size:9px;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto;margin-top:6px;">${JSON.stringify(data,null,2).slice(0,1500)}</pre>
+      </div>`;
+
+    // 数据异常时停在调试视图
     if (!data.sectors || !data.sectors.length) {
-      const res = document.getElementById('event-result');
-      res.classList.add('visible');
-      res.innerHTML = `
-        <div style="background:rgba(240,180,41,0.07);border:1px solid rgba(240,180,41,0.2);border-radius:9px;padding:16px 18px;margin-bottom:16px;">
-          <div style="color:var(--gold);font-size:12px;font-weight:600;margin-bottom:8px;">⚠ AI返回数据缺少sectors字段，显示原始响应：</div>
-          <pre style="font-size:10px;color:var(--txt2);white-space:pre-wrap;word-break:break-all;max-height:300px;overflow-y:auto;">${raw.slice(0,2000)}</pre>
-        </div>`;
       isAnalyzing=false; btn.disabled=false; btn.classList.remove('running'); btnTxt.textContent='✦ 重新分析';
       return;
     }
