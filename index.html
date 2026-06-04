@@ -1930,52 +1930,31 @@ async function analyzeEvent() {
   document.getElementById('event-result').innerHTML='';
   showProgress(); setStep(0,'active');
 
-  const prompt = `分析以下事件对A股产业链的影响，只输出JSON，不要任何解释或markdown。
+  const prompt = `分析以下事件对A股产业链的影响。只输出JSON，禁止任何解释或markdown。
 
 事件：${eventText}
 
-JSON格式：
-{
-  "eventName": "10字内简称",
-  "eventIcon": "一个emoji",
-  "eventType": "policy或macro或industry或geopolitics或tech之一",
-  "summary": "3句话概括事件背景和核心影响",
-  "duration": "短期或中期或长期之一",
-  "magnitude": "重大或显著或一般之一",
-  "bullCount": 受益行业数字,
-  "bearCount": 受损行业数字,
-  "chainImpact": [
-    {"layer": "传导层次名称", "direction": "bullish或bearish或mixed之一", "items": ["要点1", "要点2"]}
-  ],
-  "sectors": [
-    {
-      "name": "细分行业名称",
-      "icon": "emoji",
-      "direction": "bullish或bearish或mixed之一",
-      "badge": "强烈利好或利好或中性偏好或中性偏空或利空或强烈利空之一",
-      "logic": "2句话说明传导逻辑",
-      "isComponent": false,
-      "stocks": [
-        {
-          "rank": 1,
-          "code": "6位A股代码",
-          "name": "公司名",
-          "direction": "bullish或bearish或neutral之一",
-          "impact": "强烈利好或利好或中性或利空或强烈利空之一",
-          "reason": "2句话说明具体理由"
-        }
-      ]
-    }
-  ]
-}
+输出字段说明（严格按此结构）：
+eventName: 10字内简称
+eventIcon: 单个emoji
+eventType: policy/macro/industry/geopolitics/tech 选一
+summary: 3句话
+duration: 短期/中期/长期 选一
+magnitude: 重大/显著/一般 选一
+bullCount: 受益行业数量(整数)
+bearCount: 受损行业数量(整数)
+chainImpact: 数组，每项含 layer(传导层次名) direction(bullish/bearish/mixed) items(要点数组2条)
+sectors: 数组5-7项，每项含：
+  name(行业名) icon(emoji) direction(bullish/bearish/mixed) badge(利好/利空/中性等) logic(2句传导逻辑)
+  stocks: 数组3项，每项含 rank(1/2/3) code(6位A股代码) name(公司名) direction(bullish/bearish/neutral) impact(强烈利好/利好/中性/利空/强烈利空) reason(2句理由)
 
-规则：sectors给5-7个行业，每个行业给3只A股龙头，代码必须是真实的6位A股代码，只输出JSON。`;
+注意：代码必须是真实的A股6位数字代码，sectors必须包含5-7个行业，直接输出完整JSON。`;
 
   let raw = '';
   try {
-    setStep(0,'done'); setStep(1,'active'); await new Promise(r=>setTimeout(r,400));
+    setStep(0,'done'); setStep(1,'active'); await new Promise(r=>setTimeout(r,300));
     setStep(1,'done'); setStep(2,'active');
-    raw = await callAI([{role:'user',content:prompt}], 4000);
+    raw = await callAI([{role:'user',content:prompt}], 6000);
     setStep(2,'done'); setStep(3,'active'); await new Promise(r=>setTimeout(r,300));
 
     console.log('[EventAnalysis] raw length:', raw.length);
