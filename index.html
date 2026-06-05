@@ -309,6 +309,28 @@ header{padding:0 28px;height:58px;display:flex;align-items:center;justify-conten
 .btn-refresh:hover{background:rgba(45,212,191,0.14);}
 .btn-refresh:disabled{opacity:0.4;cursor:not-allowed;}
 
+/* ── PE 估值徽章 ── */
+.pe-badge{
+  font-size:9px;padding:1px 6px;border-radius:10px;
+  font-family:'JetBrains Mono',monospace;font-weight:700;
+  cursor:default;white-space:nowrap;flex-shrink:0;
+}
+.pe-badge.cheap   {background:rgba(0,181,120,0.15);color:var(--dn);border:1px solid rgba(0,181,120,0.3);}
+.pe-badge.fair-low{background:rgba(0,181,120,0.08);color:var(--dn);border:1px solid rgba(0,181,120,0.2);}
+.pe-badge.fair    {background:rgba(136,153,180,0.1);color:var(--neu);border:1px solid rgba(136,153,180,0.2);}
+.pe-badge.rich    {background:rgba(240,180,41,0.1); color:var(--gold);border:1px solid rgba(240,180,41,0.25);}
+.pe-badge.pricey  {background:rgba(255,77,79,0.1);  color:var(--up); border:1px solid rgba(255,77,79,0.25);}
+.pe-badge.na      {background:rgba(255,255,255,0.04);color:var(--muted);border:1px solid var(--border);}
+
+/* PE行业对比行 */
+.pe-compare-row{
+  display:flex;align-items:center;gap:6px;
+  margin-top:4px;font-size:9px;color:var(--muted);
+}
+.pe-industry-label{color:var(--muted);}
+.pe-industry-val{font-family:'JetBrains Mono',monospace;color:var(--txt2);}
+.pe-arrow{font-size:8px;}
+
 .footer-note{font-size:9px;color:var(--muted);text-align:center;padding:14px 0 8px;border-top:1px solid var(--border);margin-top:20px;line-height:1.9;}
 
 /* ── Mode tabs ── */
@@ -1711,12 +1733,16 @@ async function fetchQuotes(codes) {
         const close = parseFloat(parts[4]);  // 昨收
         const chg   = parseFloat(parts[31]); // 涨跌额
         const pct   = parseFloat(parts[32]); // 涨跌幅
+        // PE TTM 在 parts[39]（腾讯接口静态PE），parts[53] 有时也有
+        const pe    = parseFloat(parts[39]) || parseFloat(parts[53]) || null;
         if (!price) return;
         QUOTE_CACHE[code] = {
           code, price, close, chg, pct,
-          high:  parseFloat(parts[33]) || 0,
-          low:   parseFloat(parts[34]) || 0,
-          name:  parts[1] || '',
+          high:   parseFloat(parts[33]) || 0,
+          low:    parseFloat(parts[34]) || 0,
+          name:   parts[1]  || '',
+          sector: parts[12] || '',   // 所属行业
+          pe:     (pe && pe > 0 && pe < 5000) ? pe : null,  // 过滤异常值
           status: 'ok'
         };
         totalParsed++;
@@ -1763,6 +1789,55 @@ async function fetchQuotesFallback(codes) {
   }
 }
 
+// ── 行业平均PE基准表（Wind/同花顺行业均值，定期更新） ────────────
+// 用于对比个股PE是否偏高/偏低，数据为A股各行业近12个月均值
+const INDUSTRY_PE = {
+  '银行':       7,  '保险':      12,  '券商':      20,
+  '房地产':    10,  '建筑':      12,  '建材':      15,
+  '钢铁':      10,  '有色金属':  18,  '煤炭':       8,
+  '石油石化':   9,  '化工':      22,  '电力':      18,
+  '新能源':    30,  '光伏':      25,  '储能':      35,
+  '风电':      22,  '核电':      20,
+  '汽车':      20,  '新能源车':  35,  '零部件':    22,
+  '半导体':    60,  '芯片':      65,  '集成电路':  60,
+  '消费电子':  30,  '手机':      25,  '电子元件':  28,
+  '软件':      50,  'AI':        80,  '云计算':    70,
+  '医药':      35,  '生物科技':  50,  '医疗器械':  40,
+  '食品饮料':  28,  '白酒':      25,  '啤酒':      30,
+  '农业':      20,  '种子':      25,
+  '航空':      25,  '物流':      20,  '港口':      15,
+  '军工':      50,  '航天':      55,
+  '锂电池':    25,  '锂矿':      20,  '碳酸锂':    18,
+  '钨':        22,  '稀土':      28,  '钼':        18,
+  '造纸':      15,  '纺织':      18,  '化纤':      16,
+  '烧碱':      15,  '氯碱':      14,  '氧化铝':    12,
+  '硬质合金':  20,  '光伏钨丝':  22,
+  '默认':      25,  // 找不到匹配时的兜底值
+};
+
+// 根据个股名/行业名模糊匹配行业PE基准
+function getIndustryPE(stockName, industryName) {
+  const combined = (stockName + ' ' + (industryName || '')).toLowerCase();
+  for (const [key, pe] of Object.entries(INDUSTRY_PE)) {
+    if (combined.includes(key.toLowerCase()) || (industryName||'').includes(key)) return pe;
+  }
+  return INDUSTRY_PE['默认'];
+}
+
+// 渲染 PE 对比徽章
+// pe: 个股PE, industryPE: 行业均值
+function renderPEBadge(pe, industryPE) {
+  if (!pe || pe <= 0) return `<span class="pe-badge na">PE: N/A</span>`;
+  const ratio = pe / industryPE;
+  let level, tip;
+  if (ratio < 0.7)      { level = 'cheap';    tip = '低于行业均值'; }
+  else if (ratio < 0.9) { level = 'fair-low'; tip = '略低于行业'; }
+  else if (ratio < 1.1) { level = 'fair';     tip = '接近行业均值'; }
+  else if (ratio < 1.4) { level = 'rich';     tip = '略高于行业'; }
+  else                  { level = 'pricey';   tip = '高于行业均值'; }
+  return `<span class="pe-badge ${level}" title="${tip}｜行业均值${industryPE}x">PE ${pe.toFixed(0)}x</span>`;
+}
+
 // Format helpers
 function fmtPrice(p) { return p > 0 ? p.toFixed(2) : '--'; }
 function fmtPct(p)   {
@@ -1786,9 +1861,24 @@ function renderQuoteEl(code) {
     return;
   }
   const cls = clsCls(q.pct);
+  // Find industry name from current cards to get PE benchmark
+  const industryName = findStockIndustry(code);
+  const industryPE   = getIndustryPE(q.name || '', industryName);
+  const peBadge      = renderPEBadge(q.pe, industryPE);
   el.innerHTML = `
     <span class="squote-price ${cls}">${fmtPrice(q.price)}</span>
-    <span class="squote-chg ${cls}">${fmtPct(q.pct)}</span>`;
+    <span class="squote-chg ${cls}">${fmtPct(q.pct)}</span>
+    ${peBadge}`;
+}
+
+// 根据股票代码找其所属行业（从当前显示的卡片里反查）
+function findStockIndustry(code) {
+  const c = WORKING[curCom];
+  const s = c[curSc];
+  for (const card of (s.cards || [])) {
+    if ((card.stocks || []).find(st => st.code === code)) return card.industry || '';
+  }
+  return '';
 }
 
 // Update all quote elements currently in DOM
@@ -2125,18 +2215,27 @@ function renderEventResult(data) {
     ${peerComparisonHTML}
     <div class="footer-note">⚠️ 以上分析由 DeepSeek AI 生成，仅供研究参考，不构成投资建议。</div>`;
 
-  // Live quotes for event stocks
+  // Live quotes + PE for event stocks
   const codes = (data.sectors||[]).flatMap(s=>(s.stocks||[]).map(st=>st.code)).filter(Boolean);
+  // Build code→industry map for PE lookup
+  const codeIndustryMap = {};
+  (data.sectors||[]).forEach(sec => {
+    (sec.stocks||[]).forEach(st => { if(st.code) codeIndustryMap[st.code] = sec.name || ''; });
+  });
   if (codes.length) {
     fetchQuotes(codes).then(()=>{
       codes.forEach(code=>{
-        const q=QUOTE_CACHE[code];
-        const qEl=document.getElementById('eq-'+code);
+        const q = QUOTE_CACHE[code];
+        const qEl = document.getElementById('eq-'+code);
         if (!qEl) return;
-        if (!q||q.status==='err'){qEl.className='sc-quote flat';qEl.textContent='--';return;}
-        const cls=q.pct>0?'up':q.pct<0?'dn':'flat';
-        qEl.className=`sc-quote ${cls}`;
-        qEl.textContent=`${fmtPrice(q.price)} ${fmtPct(q.pct)}`;
+        if (!q || q.status==='err') {
+          qEl.className='sc-quote flat'; qEl.textContent='--'; return;
+        }
+        const cls = q.pct>0?'up':q.pct<0?'dn':'flat';
+        const industryPE = getIndustryPE(q.name||'', codeIndustryMap[code]||'');
+        const peBadge    = renderPEBadge(q.pe, industryPE);
+        qEl.className = `sc-quote ${cls}`;
+        qEl.innerHTML = `${fmtPrice(q.price)} <span style="font-size:9px">${fmtPct(q.pct)}</span> ${peBadge}`;
       });
     });
   }
